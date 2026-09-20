@@ -1,0 +1,1834 @@
+<!DOCTYPE html>
+<html lang="fr" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Vie Scolaire Pro Max 3- Suivi Élèves & Pronote</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- SheetJS (XLSX & CSV) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- pdfjs-dist (Lecture et extraction des PDF) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <!-- QRCode.js (Génération QR) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- jsPDF et html2canvas -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            touch-action: manipulation;
+            font-family: 'Inter', sans-serif;
+        }
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            body { background: white !important; color: black !important; }
+            .shadow-lg, .shadow-md, .shadow-sm { box-shadow: none !important; }
+            .border { border-color: #cbd5e1 !important; }
+        }
+        .page-fade {
+            animation: fadeIn 0.25s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .card-no-exit {
+            background-color: rgba(254, 226, 226, 0.55) !important;
+            border-color: #fca5a5 !important;
+        }
+        .card-no-exit:hover {
+            background-color: rgba(254, 202, 202, 0.7) !important;
+        }
+    </style>
+</head>
+<body class="h-full text-slate-800 antialiased flex flex-col min-h-screen">
+
+    <!-- EN-TÊTE PRINCIPAL -->
+    <header class="bg-indigo-700 text-white shadow-md sticky top-0 z-30 no-print">
+        <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-2 sm:space-x-3 cursor-pointer" onclick="showListPage()">
+                <div class="bg-white/10 p-2 rounded-lg backdrop-blur-sm">
+                    <i data-lucide="graduation-cap" class="w-6 h-6 text-indigo-200"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-base sm:text-lg leading-tight">VieScolaire Pro</h1>
+                    <p class="text-[10px] sm:text-xs text-indigo-200">Suivi des élèves & discipline Pronote</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-1.5 sm:space-x-2">
+                <button onclick="showListPage()" class="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-2.5 py-2 rounded-lg transition border border-indigo-500">
+                    <i data-lucide="users" class="w-4 h-4"></i>
+                    <span class="hidden md:inline">Élèves</span>
+                </button>
+                <button onclick="showRecapPage()" class="inline-flex items-center gap-1.5 bg-indigo-800 hover:bg-indigo-900 text-amber-300 text-xs font-semibold px-2.5 py-2 rounded-lg transition border border-amber-400/40 shadow-xs">
+                    <i data-lucide="list-checks" class="w-4 h-4 text-amber-400"></i>
+                    <span class="hidden sm:inline">Récapitulatif</span>
+                </button>
+                <button onclick="openAddStudentModal()" class="inline-flex items-center gap-1 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white text-xs font-medium px-2.5 py-2 rounded-lg transition shadow-sm">
+                    <i data-lucide="user-plus" class="w-4 h-4"></i>
+                    <span class="hidden sm:inline">Nouvel Élève</span>
+                </button>
+                
+                <div class="h-5 w-px bg-indigo-500/50 hidden sm:block"></div>
+
+                <!-- BOUTONS CARTES DE CANTINE -->
+                <button onclick="exportCanteenCardsJSON()" class="inline-flex items-center gap-1 bg-amber-500 hover:bg-amber-600 text-white text-xs font-medium px-2.5 py-2 rounded-lg transition shadow-sm" title="Sauvegarder les cartes de cantine (QR Code et N° Repère)">
+                    <i data-lucide="qr-code" class="w-4 h-4"></i>
+                    <span class="hidden lg:inline">Sauvegarder Cartes</span>
+                </button>
+                <button onclick="triggerCanteenCardsImport()" class="inline-flex items-center gap-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-2.5 py-2 rounded-lg transition border border-indigo-500" title="Restaurer les cartes de cantine pour la nouvelle année">
+                    <i data-lucide="credit-card" class="w-4 h-4"></i>
+                    <span class="hidden lg:inline">Restaurer Cartes</span>
+                </button>
+                <input type="file" id="canteenCardsInput" accept=".json" class="hidden" onchange="importCanteenCardsJSON(event)">
+
+                <div class="h-5 w-px bg-indigo-500/50 hidden sm:block"></div>
+
+                <button onclick="triggerJsonImport()" class="inline-flex items-center p-2 sm:px-2.5 sm:py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded-lg transition border border-indigo-500" title="Restaurer une sauvegarde JSON">
+                    <i data-lucide="upload" class="w-4 h-4"></i>
+                    <span class="hidden xl:inline ml-1">Restaurer</span>
+                </button>
+                <button onclick="exportJSON()" class="inline-flex items-center p-2 sm:px-2.5 sm:py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded-lg transition border border-indigo-500" title="Sauvegarder en fichier JSON">
+                    <i data-lucide="download" class="w-4 h-4"></i>
+                    <span class="hidden xl:inline ml-1">Sauvegarder</span>
+                </button>
+                <input type="file" id="jsonInput" accept=".json" class="hidden" onchange="importJSON(event)">
+
+                <button onclick="openResetModal()" class="inline-flex items-center p-2 sm:px-2.5 sm:py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-lg transition shadow-sm border border-rose-500" title="Effacer la base de données (Nouvelle Année)">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                    <span class="hidden xl:inline ml-1">RAZ Année</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 lg:p-8">
+
+        <!-- PAGE 1 : LISTE DES ÉLÈVES -->
+        <section id="pageList" class="page-fade space-y-4 sm:space-y-6">
+            <div class="bg-white rounded-xl p-4 shadow-sm border border-slate-200 flex flex-col gap-4">
+                <div class="flex flex-col md:flex-row gap-3 justify-between items-center">
+                    <div class="relative w-full md:w-80">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                            <i data-lucide="search" class="w-4 h-4"></i>
+                        </div>
+                        <input type="text" id="searchInput" oninput="filterStudents()" placeholder="Nom, prénom, classe ou badge..." class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition">
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2 w-full md:w-auto justify-start md:justify-end">
+                        <select id="classFilter" onchange="filterStudents()" class="bg-slate-50 border border-slate-300 text-slate-700 text-xs sm:text-sm rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="">Toutes les classes</option>
+                        </select>
+
+                        <button onclick="triggerAbsenceImport()" class="inline-flex items-center gap-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-semibold px-2.5 py-2 rounded-lg border border-amber-300 transition shadow-xs" title="Importer un relevé PRONOTE / Vie Scolaire (PDF, XLSX, CSV, TXT)">
+                            <i data-lucide="file-check-2" class="w-4 h-4 text-amber-600"></i>
+                            <span>Importer Vie Scolaire / PRONOTE</span>
+                        </button>
+                        <input type="file" id="absenceFileInput" accept=".pdf, .xlsx, .xls, .csv, .txt" class="hidden" onchange="importAbsenceDataFile(event)">
+
+                        <button onclick="openClearVieScolaireModal()" class="inline-flex items-center gap-1.5 bg-rose-50 hover:bg-rose-100 text-rose-800 text-xs font-semibold px-2.5 py-2 rounded-lg border border-rose-300 transition shadow-xs" title="Effacer l'importation Vie Scolaire">
+                            <i data-lucide="trash" class="w-4 h-4 text-rose-600"></i>
+                            <span>Effacer Import</span>
+                        </button>
+
+                        <button onclick="triggerFileImport()" class="inline-flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium px-2.5 py-2 rounded-lg border border-slate-300 transition" title="Importer la liste d'élèves depuis Excel ou CSV">
+                            <i data-lucide="file-spreadsheets" class="w-4 h-4 text-emerald-600"></i>
+                            <span class="hidden sm:inline">Importer Élèves</span>
+                        </button>
+                        <input type="file" id="fileInput" accept=".xlsx, .xls, .csv, .txt" class="hidden" onchange="importDataFile(event)">
+
+                        <button onclick="openExportClassModal()" class="inline-flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-medium px-2.5 py-2 rounded-lg border border-emerald-300 transition">
+                            <i data-lucide="file-output" class="w-4 h-4 text-emerald-600"></i>
+                            <span class="hidden sm:inline">Export Classe</span>
+                        </button>
+
+                        <button onclick="exportGlobalCSV()" class="inline-flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium px-2.5 py-2 rounded-lg border border-slate-300 transition" title="Exporter toute la base en CSV">
+                            <i data-lucide="download-cloud" class="w-4 h-4 text-indigo-600"></i>
+                            <span class="hidden sm:inline">Export CSV</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider mr-1">Filtres rapides :</span>
+                        <button id="btnFilterAll" onclick="setQuickFilter('all')" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-indigo-600 text-white shadow-xs flex items-center gap-1.5 transition">
+                            <i data-lucide="users" class="w-3.5 h-3.5"></i>
+                            <span>Tous</span>
+                        </button>
+                        <button id="btnFilterCanteen" onclick="setQuickFilter('canteen')" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 flex items-center gap-1.5 transition">
+                            <i data-lucide="utensils" class="w-3.5 h-3.5 text-emerald-600"></i>
+                            <span>Demi-pensionnaires (Cantine)</span>
+                        </button>
+                        <button id="btnFilterNoExit" onclick="setQuickFilter('no-exit')" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 flex items-center gap-1.5 transition">
+                            <i data-lucide="shield-alert" class="w-3.5 h-3.5 text-rose-600"></i>
+                            <span>Interdits de Sortie</span>
+                        </button>
+                    </div>
+
+                    <div class="text-xs text-slate-500 font-medium ml-auto" id="studentsCountLabel">
+                        Élèves affichés : 0
+                    </div>
+                </div>
+            </div>
+
+            <div id="studentsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+
+            <div id="emptyMessage" class="hidden text-center py-12 bg-white rounded-xl border border-dashed border-slate-300">
+                <i data-lucide="user-x" class="w-12 h-12 text-slate-300 mx-auto mb-3"></i>
+                <h3 class="text-base font-semibold text-slate-700">Aucun élève trouvé</h3>
+                <p class="text-sm text-slate-500">Essayez de modifier vos critères de recherche ou de filtrage.</p>
+            </div>
+        </section>
+
+        <!-- PAGE 2 : FICHE DÉTAILLÉE ÉLÈVE -->
+        <section id="pageDetail" class="hidden page-fade space-y-6">
+            <div class="flex flex-wrap items-center justify-between gap-4 no-print">
+                <button onclick="showListPage()" class="inline-flex items-center gap-2 bg-white hover:bg-slate-100 text-slate-700 font-medium px-4 py-2 rounded-lg border border-slate-300 shadow-sm transition text-sm">
+                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                    <span>Retour à la liste</span>
+                </button>
+
+                <div class="flex items-center gap-2">
+                    <button onclick="exportStudentPDF()" class="inline-flex items-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white font-medium px-3.5 py-2 rounded-lg shadow-sm transition text-sm">
+                        <i data-lucide="file-text" class="w-4 h-4"></i>
+                        <span>Exporter PDF</span>
+                    </button>
+                    <button onclick="confirmDeleteStudent()" class="inline-flex items-center gap-1.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-medium px-3.5 py-2 rounded-lg shadow-sm transition text-sm">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        <span>Supprimer l'élève</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="studentDetailCard" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="bg-slate-900 text-white p-6 sm:p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-16 h-16 rounded-full bg-indigo-500/20 border-2 border-indigo-400 flex items-center justify-center text-indigo-300 font-bold text-2xl flex-shrink-0">
+                            <span id="detailInitials">--</span>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h2 class="text-2xl font-bold tracking-tight" id="detailName">Nom Prénom</h2>
+                                <div id="detailCanteenIndicator" class="hidden items-center gap-1.5 bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 px-2.5 py-1 rounded-full text-xs font-semibold">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                    <span>CANTINE (Demi-Pensionnaire)</span>
+                                </div>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-2 mt-2">
+                                <span class="bg-indigo-500/30 text-indigo-200 text-xs px-2.5 py-0.5 rounded-full border border-indigo-400/30 font-medium" id="detailClass">Classe</span>
+                                <span class="bg-slate-800 text-slate-300 text-xs px-2.5 py-0.5 rounded-full border border-slate-700" id="detailRegime">Régime</span>
+                                <span class="text-xs px-2.5 py-0.5 rounded-full border" id="detailExitBadge">Autorisation sortie: --</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="detailCanteenQRBox" class="hidden bg-slate-800 border border-slate-700 p-4 rounded-xl items-center gap-4 flex-shrink-0 w-full md:w-auto">
+                        <div id="qrcodeCanvas" class="bg-white p-2 rounded-lg shadow-md border border-slate-300"></div>
+                        <div class="flex flex-col gap-1.5">
+                            <span class="text-xs text-amber-400 font-bold flex items-center gap-1">
+                                <i data-lucide="qr-code" class="w-3.5 h-3.5"></i> QR Code Cantine (Urgence)
+                            </span>
+                            <span class="text-[10px] text-slate-400 leading-tight">Généré avec niveau d'erreur élevé (H)<br>en cas de carte perdue</span>
+                            <div class="mt-1 flex items-center gap-1">
+                                <input type="text" id="canteenBadgeInput" oninput="updateCanteenBadgeNumber(this.value)" placeholder="N° de badge cantine..." class="bg-slate-900 border border-slate-600 text-white text-xs px-2 py-1 rounded outline-none focus:border-amber-400 w-36 font-mono">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-left md:text-right text-sm text-slate-300 border-t md:border-t-0 pt-3 md:pt-0 border-slate-800 w-full md:w-auto">
+                        <p class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Professeur Principal</p>
+                        <p class="font-medium text-slate-200 text-base" id="detailProf">Non renseigné</p>
+                    </div>
+                </div>
+
+                <div class="p-6 border-b border-slate-200 bg-slate-50/50">
+                    <h3 class="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Compteurs & Synthèse</h3>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+                        <div class="bg-white p-4 rounded-xl border border-slate-200 text-center shadow-xs">
+                            <div class="text-xs text-slate-500 font-medium">Retards</div>
+                            <div class="text-2xl font-bold text-amber-600 my-1" id="countRetards">0</div>
+                            <button onclick="openAddEventModal('retard')" class="no-print mt-1 text-xs text-amber-700 bg-amber-50 hover:bg-amber-100 px-2 py-1 rounded w-full font-medium transition flex items-center justify-center gap-1">
+                                <i data-lucide="plus" class="w-3 h-3"></i> Ajouter
+                            </button>
+                        </div>
+
+                        <div class="bg-white p-4 rounded-xl border border-slate-200 text-center shadow-xs">
+                            <div class="text-xs text-slate-500 font-medium">Absences</div>
+                            <div class="text-2xl font-bold text-rose-600 my-1" id="countAbsences">0</div>
+                            <button onclick="openAddEventModal('absence')" class="no-print mt-1 text-xs text-rose-700 bg-rose-50 hover:bg-rose-100 px-2 py-1 rounded w-full font-medium transition flex items-center justify-center gap-1">
+                                <i data-lucide="plus" class="w-3 h-3"></i> Ajouter
+                            </button>
+                        </div>
+
+                        <div class="bg-white p-4 rounded-xl border border-slate-200 text-center shadow-xs">
+                            <div class="text-xs text-slate-500 font-medium">Heures Retenue</div>
+                            <div class="text-2xl font-bold text-purple-600 my-1" id="countRetenues">0 h</div>
+                            <button onclick="openAddEventModal('retenue')" class="no-print mt-1 text-xs text-purple-700 bg-purple-50 hover:bg-purple-100 px-2 py-1 rounded w-full font-medium transition flex items-center justify-center gap-1">
+                                <i data-lucide="plus" class="w-3 h-3"></i> Ajouter
+                            </button>
+                        </div>
+
+                        <div class="bg-white p-4 rounded-xl border border-slate-200 text-center shadow-xs">
+                            <div class="text-xs text-slate-500 font-medium">Observations</div>
+                            <div class="text-2xl font-bold text-blue-600 my-1" id="countObservations">0</div>
+                            <button onclick="openAddEventModal('observation')" class="no-print mt-1 text-xs text-blue-700 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded w-full font-medium transition flex items-center justify-center gap-1">
+                                <i data-lucide="plus" class="w-3 h-3"></i> Ajouter
+                            </button>
+                        </div>
+
+                        <div class="bg-white p-4 rounded-xl border border-slate-200 text-center shadow-xs">
+                            <div class="text-xs text-slate-500 font-medium">Sanctions</div>
+                            <div class="text-2xl font-bold text-red-700 my-1" id="countSanctions">0</div>
+                            <button onclick="openAddEventModal('sanction')" class="no-print mt-1 text-xs text-red-700 bg-red-50 hover:bg-red-100 px-2 py-1 rounded w-full font-medium transition flex items-center justify-center gap-1">
+                                <i data-lucide="plus" class="w-3 h-3"></i> Ajouter
+                            </button>
+                        </div>
+
+                        <div class="bg-white p-4 rounded-xl border border-slate-200 text-center shadow-xs">
+                            <div class="text-xs text-slate-500 font-medium">Oublis Carnet</div>
+                            <div class="text-2xl font-bold text-slate-700 my-1" id="countCarnet">0</div>
+                            <button onclick="openAddEventModal('carnet')" class="no-print mt-1 text-xs text-slate-700 bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded w-full font-medium transition flex items-center justify-center gap-1">
+                                <i data-lucide="plus" class="w-3 h-3"></i> Ajouter
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-base font-semibold text-slate-800 flex items-center gap-2">
+                            <i data-lucide="history" class="w-5 h-5 text-indigo-600"></i>
+                            <span>Historique Vie Scolaire & PRONOTE</span>
+                        </h3>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm border-collapse">
+                            <thead>
+                                <tr class="border-b border-slate-200 text-xs font-semibold uppercase text-slate-500 bg-slate-50">
+                                    <th class="py-3 px-4">Date & Heure</th>
+                                    <th class="py-3 px-4">Événement / Punition</th>
+                                    <th class="py-3 px-4">Statut / Détail</th>
+                                    <th class="py-3 px-4">Motif / Commentaire</th>
+                                    <th class="py-3 px-4 text-right no-print">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTableBody" class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+
+                    <div id="emptyHistory" class="text-center py-8 text-slate-400 text-sm hidden">
+                        Aucun événement ou punition enregistré pour le moment.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PAGE 3 : RÉCAPITULATIF DES ÉVÉNEMENTS PAR CATÉGORIE -->
+        <section id="pageRecap" class="hidden page-fade space-y-6">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                        <i data-lucide="clipboard-list" class="w-6 h-6 text-indigo-600"></i>
+                        <span>Récapitulatif Global des Événements & Sanctions</span>
+                    </h2>
+                    <p class="text-xs text-slate-500 mt-1">Liste consolidée des élèves ayant enregistré des événements ou punitions Vie Scolaire / PRONOTE.</p>
+                </div>
+                
+                <div class="flex items-center gap-2">
+                    <button onclick="openExportClassModal()" class="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-3.5 py-2 rounded-lg shadow-sm transition text-sm">
+                        <i data-lucide="file-output" class="w-4 h-4"></i>
+                        <span>Exporter Récapitulatif par Classe</span>
+                    </button>
+
+                    <button onclick="showListPage()" class="inline-flex items-center gap-2 bg-white hover:bg-slate-100 text-slate-700 font-medium px-4 py-2 rounded-lg border border-slate-300 shadow-sm transition text-sm">
+                        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                        <span>Retour à la liste</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="border-b border-slate-200 bg-white rounded-xl shadow-xs p-1.5 flex flex-wrap gap-1">
+                <button onclick="switchRecapTab('retard')" id="tab-retard" class="recap-tab px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition bg-indigo-600 text-white shadow-xs">
+                    <i data-lucide="clock" class="w-4 h-4"></i>
+                    <span>Retards</span>
+                    <span id="badge-retard" class="bg-indigo-700 text-white text-[10px] px-1.5 py-0.5 rounded-full ml-1">0</span>
+                </button>
+                <button onclick="switchRecapTab('absence')" id="tab-absence" class="recap-tab px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition text-slate-600 hover:bg-slate-100">
+                    <i data-lucide="user-x" class="w-4 h-4"></i>
+                    <span>Absences</span>
+                    <span id="badge-absence" class="bg-slate-200 text-slate-700 text-[10px] px-1.5 py-0.5 rounded-full ml-1">0</span>
+                </button>
+                <button onclick="switchRecapTab('retenue')" id="tab-retenue" class="recap-tab px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition text-slate-600 hover:bg-slate-100">
+                    <i data-lucide="alert-circle" class="w-4 h-4"></i>
+                    <span>Retenues</span>
+                    <span id="badge-retenue" class="bg-slate-200 text-slate-700 text-[10px] px-1.5 py-0.5 rounded-full ml-1">0</span>
+                </button>
+                <button onclick="switchRecapTab('observation')" id="tab-observation" class="recap-tab px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition text-slate-600 hover:bg-slate-100">
+                    <i data-lucide="message-square" class="w-4 h-4"></i>
+                    <span>Observations</span>
+                    <span id="badge-observation" class="bg-slate-200 text-slate-700 text-[10px] px-1.5 py-0.5 rounded-full ml-1">0</span>
+                </button>
+                <button onclick="switchRecapTab('sanction')" id="tab-sanction" class="recap-tab px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition text-slate-600 hover:bg-slate-100">
+                    <i data-lucide="shield-alert" class="w-4 h-4"></i>
+                    <span>Sanctions</span>
+                    <span id="badge-sanction" class="bg-slate-200 text-slate-700 text-[10px] px-1.5 py-0.5 rounded-full ml-1">0</span>
+                </button>
+                <button onclick="switchRecapTab('carnet')" id="tab-carnet" class="recap-tab px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition text-slate-600 hover:bg-slate-100">
+                    <i data-lucide="book-open" class="w-4 h-4"></i>
+                    <span>Oublis Carnet</span>
+                    <span id="badge-carnet" class="bg-slate-200 text-slate-700 text-[10px] px-1.5 py-0.5 rounded-full ml-1">0</span>
+                </button>
+            </div>
+
+            <div id="recapCategoryList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+
+            <div id="recapEmptyMessage" class="hidden text-center py-12 bg-white rounded-xl border border-dashed border-slate-300">
+                <i data-lucide="check-circle-2" class="w-12 h-12 text-emerald-400 mx-auto mb-3"></i>
+                <h3 class="text-base font-semibold text-slate-700">Aucun élève concerné</h3>
+                <p class="text-sm text-slate-500">Aucun élève n'a enregistré d'événement dans cette catégorie.</p>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODALE : Confirmation Toggle Cantine ou Sortie -->
+    <div id="confirmToggleModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-sm w-full p-6 space-y-4 border border-slate-200 text-center">
+            <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto" id="toggleModalIcon">
+                <i data-lucide="help-circle" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <h3 class="font-bold text-lg text-slate-800" id="toggleModalTitle">Confirmation requise</h3>
+                <p class="text-xs text-slate-600 mt-2" id="toggleModalMessage">Êtes-vous sûr de vouloir effectuer cette modification ?</p>
+            </div>
+            <div class="flex justify-center gap-2 pt-2">
+                <button onclick="closeModal('confirmToggleModal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition">Annuler</button>
+                <button id="btnExecuteToggle" onclick="executePendingToggle()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-sm transition">Confirmer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALE : Confirmation Effacement Import Vie Scolaire -->
+    <div id="clearVieScolaireModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-sm w-full p-6 space-y-4 border border-slate-200 text-center">
+            <div class="w-12 h-12 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto">
+                <i data-lucide="trash-2" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <h3 class="font-bold text-lg text-slate-800">Effacer l'importation Vie Scolaire</h3>
+                <p class="text-xs text-slate-600 mt-2">Êtes-vous sûr de vouloir supprimer tous les événements enregistrés chez tous les élèves ?</p>
+                <p class="text-xs font-semibold text-rose-600 mt-1">Les élèves et leurs informations principales seront conservés.</p>
+            </div>
+            <div class="flex justify-center gap-2 pt-2">
+                <button onclick="closeModal('clearVieScolaireModal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition">Annuler</button>
+                <button onclick="executeClearVieScolaireData()" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-lg shadow-sm transition">Effacer les données</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALE : Effacer la base de données (RAZ Année) -->
+    <div id="resetDbModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-sm w-full p-6 space-y-4 border border-slate-200 text-center">
+            <div class="w-12 h-12 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto">
+                <i data-lucide="alert-octagon" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <h3 class="font-bold text-lg text-slate-800">Effacer la Base de Données</h3>
+                <p class="text-xs text-slate-500 mt-2">Attention ! Cette action supprimera définitivement <b>TOUS LES ÉLÈVES</b> et leurs historiques pour débuter une nouvelle année.</p>
+                <p class="text-xs font-bold text-rose-600 mt-2">Pensez à faire une sauvegarde JSON avant de continuer !</p>
+            </div>
+            <div class="flex justify-center gap-2 pt-2">
+                <button onclick="closeModal('resetDbModal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition">NON, Annuler</button>
+                <button onclick="executeResetDb()" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-lg shadow-sm transition">OUI, Effacer tout</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALE : Export Excel par Classe -->
+    <div id="exportClassModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6 space-y-4 border border-slate-200">
+            <div class="flex justify-between items-center border-b pb-3 border-slate-100">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="file-spreadsheets" class="w-5 h-5 text-emerald-600"></i>
+                    <h3 class="font-bold text-lg text-slate-800">Exportation Excel par Classe</h3>
+                </div>
+                <button onclick="closeModal('exportClassModal')" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <form id="exportClassForm" onsubmit="handleExportClassExcel(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Sélectionner la classe à exporter</label>
+                    <select id="exportClassSelect" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500">
+                        <option value="ALL">Toutes les classes (1 onglet par classe)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Contenu de l'exportation</label>
+                    <select id="exportTypeSelect" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500">
+                        <option value="summary">Synthèse globale par élève (Compteurs & Info Badge Cantine)</option>
+                        <option value="details">Historique détaillé des événements</option>
+                        <option value="both">Les deux (Synthèse + Historique détaillé)</option>
+                    </select>
+                </div>
+
+                <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-xs text-emerald-800 flex items-start gap-2">
+                    <i data-lucide="info" class="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5"></i>
+                    <p>Le fichier Excel généré comportera des feuilles structurées avec la liste des élèves et leurs statuts.</p>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeModal('exportClassModal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-lg">Annuler</button>
+                    <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded-lg shadow-sm flex items-center gap-1.5">
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                        <span>Télécharger Excel (.xlsx)</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODALE : Ajout d'Événement / Punition PRONOTE -->
+    <div id="eventModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6 space-y-4 border border-slate-200">
+            <div class="flex justify-between items-center border-b pb-3 border-slate-100">
+                <h3 class="font-bold text-lg text-slate-800" id="eventModalTitle">Ajouter un événement / Punition</h3>
+                <button onclick="closeModal('eventModal')" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <form id="eventForm" onsubmit="handleSaveEvent(event)" class="space-y-4">
+                <input type="hidden" id="eventTypeInput">
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Date & Heure</label>
+                    <input type="datetime-local" id="eventDateInput" required class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <div id="justifiedField" class="hidden">
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Absence Justifiée ?</label>
+                    <select id="eventJustifiedInput" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="Non">Non (Non justifiée)</option>
+                        <option value="Oui">Oui (Justifiée)</option>
+                    </select>
+                </div>
+
+                <div id="durationField" class="hidden">
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Durée (Heures)</label>
+                    <input type="number" id="eventDurationInput" min="1" max="8" value="1" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+
+                <!-- Type spécifique PRONOTE si sanction -->
+                <div id="pronotePunitionTypeField" class="hidden">
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Type de Punition / Sanction PRONOTE</label>
+                    <select id="eventPronoteTypeInput" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="Retenue">Retenue / Colle</option>
+                        <option value="Devoir supplémentaire">Devoir supplémentaire</option>
+                        <option value="Exclusion de cours">Exclusion de cours</option>
+                        <option value="Travail d'intérêt général">Travail d'intérêt général (TIG)</option>
+                        <option value="Avertissement">Avertissement</option>
+                        <option value="Blâme">Blâme</option>
+                        <option value="Mise en garde">Mise en garde</option>
+                        <option value="Commission éducative">Commission éducative</option>
+                        <option value="Conseil de discipline">Conseil de discipline</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Motif / Commentaire</label>
+                    <textarea id="eventMotifInput" rows="3" placeholder="Renseignez le motif ou commentaire PRONOTE..." class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeModal('eventModal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-lg">Annuler</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-lg shadow-sm">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODALE : Nouvel Élève -->
+    <div id="addStudentModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6 space-y-4 border border-slate-200">
+            <div class="flex justify-between items-center border-b pb-3 border-slate-100">
+                <h3 class="font-bold text-lg text-slate-800">Ajouter un Élève</h3>
+                <button onclick="closeModal('addStudentModal')" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <form id="addStudentForm" onsubmit="handleAddStudent(event)" class="space-y-4">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Nom *</label>
+                        <input type="text" id="newNom" required placeholder="DUPONT" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Prénom *</label>
+                        <input type="text" id="newPrenom" required placeholder="Jean" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Classe *</label>
+                        <input type="text" id="newClasse" required placeholder="3ème A" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Régime</label>
+                        <select id="newRegime" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="Demi-pensionnaire">Demi-pensionnaire</option>
+                            <option value="Externe">Externe</option>
+                            <option value="Interne">Interne</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Autorisation de Sortie</label>
+                        <select id="newAutorisation" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="Oui">Oui</option>
+                            <option value="Non">Non</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Prof. Principal</label>
+                        <input type="text" id="newProf" placeholder="Mme Martin" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeModal('addStudentModal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-lg">Annuler</button>
+                    <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded-lg shadow-sm">Créer l'Élève</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODALE : Confirmation de Suppression Élève -->
+    <div id="deleteModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-sm w-full p-6 space-y-4 border border-slate-200 text-center">
+            <div class="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto">
+                <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <h3 class="font-bold text-lg text-slate-800">Confirmer la suppression</h3>
+                <p class="text-xs text-slate-500 mt-1">Êtes-vous sûr de vouloir supprimer cet élève ? Cette action est irréversible et effacera tout son historique.</p>
+            </div>
+            <div class="flex justify-center gap-2 pt-2">
+                <button onclick="closeModal('deleteModal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-lg">Annuler</button>
+                <button onclick="executeDeleteStudent()" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-medium rounded-lg shadow-sm">Supprimer définitivement</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT APPLICATION -->
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        // =========================================================
+        // 1. STATE & CONSTANTS
+        // =========================================================
+        const STORAGE_KEY = 'viescolaire_students_db_v6';
+
+        let students = [];
+        let selectedStudentId = null;
+        let currentQuickFilter = 'all';
+        let currentRecapCategory = 'retard';
+        let pendingToggleAction = null;
+        let qrCodeObj = null;
+
+        const demoData = [
+            {
+                id: '10000000-0000-4000-8000-000000000001',
+                nom: 'DUBOIS',
+                prenom: 'Lucas',
+                classe: '3ème A',
+                regime: 'Demi-pensionnaire',
+                autorisationSortie: 'Oui',
+                profPrincipal: 'M. Thomas (Maths)',
+                badgeRepere: 'REP-101',
+                badgeCantine: 'DP-30982',
+                events: [
+                    { id: 'e1', type: 'retard', date: '2026-03-10T08:12', motif: 'Problème de bus' },
+                    { id: 'e2', type: 'absence', date: '2026-03-12T08:00', justified: 'Oui', motif: 'Rendez-vous médical' },
+                    { id: 'e3', type: 'observation', date: '2026-03-14T14:30', motif: 'Oubli du matériel de SVT' }
+                ]
+            },
+            {
+                id: '10000000-0000-4000-8000-000000000002',
+                nom: 'BENALI',
+                prenom: 'Yasmine',
+                classe: '4ème B',
+                regime: 'Externe',
+                autorisationSortie: 'Non',
+                profPrincipal: 'Mme Bernard (Français)',
+                badgeRepere: '',
+                badgeCantine: '',
+                events: [
+                    { id: 'e4', type: 'carnet', date: '2026-03-08T09:00', motif: 'Contrôle à l\'entrée' },
+                    { id: 'e5', type: 'retenue', date: '2026-03-15T17:00', duration: 1, motif: 'Bavardages répétés' }
+                ]
+            },
+            {
+                id: '10000000-0000-4000-8000-000000000003',
+                nom: 'MARTIN',
+                prenom: 'Gabriel',
+                classe: '3ème A',
+                regime: 'Demi-pensionnaire',
+                autorisationSortie: 'Non',
+                profPrincipal: 'M. Thomas (Maths)',
+                badgeRepere: 'REP-103',
+                badgeCantine: 'DP-30985',
+                events: [
+                    { id: 'e6', type: 'sanction', date: '2026-03-16T10:30', pronoteType: 'Avertissement', motif: 'Insolence en classe' }
+                ]
+            }
+        ];
+
+        // =========================================================
+        // 2. SECURITY & UTILS
+        // =========================================================
+        function sanitize(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function generateUUID() {
+            if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+                return crypto.randomUUID();
+            }
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                const r = Math.random() * 16 | 0;
+                const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+
+        // =========================================================
+        // 3. STORAGE & LIFECYCLE
+        // =========================================================
+        window.onload = function() {
+            loadStorage();
+            populateClassFilter();
+            renderStudentsGrid();
+            lucide.createIcons();
+        };
+
+        function loadStorage() {
+            const data = localStorage.getItem(STORAGE_KEY);
+            if (data) {
+                try {
+                    students = JSON.parse(data);
+                } catch(e) {
+                    console.error("Erreur de lecture du localStorage", e);
+                    students = demoData;
+                    saveStorage();
+                }
+            } else {
+                students = demoData;
+                saveStorage();
+            }
+        }
+
+        function saveStorage() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(students));
+        }
+
+        // =========================================================
+        // 4. DOM RENDERERS & RENDERING ENGINE
+        // =========================================================
+        function populateClassFilter() {
+            const select = document.getElementById('classFilter');
+            const exportSelect = document.getElementById('exportClassSelect');
+            const classes = [...new Set(students.map(s => s.classe))].filter(Boolean).sort();
+            
+            select.innerHTML = '<option value="">Toutes les classes</option>';
+            exportSelect.innerHTML = '<option value="ALL">Toutes les classes (1 onglet par classe)</option>';
+            
+            classes.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c;
+                opt.textContent = c;
+                select.appendChild(opt);
+
+                const opt2 = document.createElement('option');
+                opt2.value = c;
+                opt2.textContent = c;
+                exportSelect.appendChild(opt2);
+            });
+        }
+
+        function renderStudentsGrid(items = students) {
+            const grid = document.getElementById('studentsGrid');
+            const emptyMsg = document.getElementById('emptyMessage');
+            document.getElementById('studentsCountLabel').textContent = `Élèves affichés : ${items.length}`;
+            grid.innerHTML = '';
+
+            if (items.length === 0) {
+                emptyMsg.classList.remove('hidden');
+                return;
+            } else {
+                emptyMsg.classList.add('hidden');
+            }
+
+            items.forEach(student => {
+                const retards = (student.events || []).filter(e => e.type === 'retard').length;
+                const absences = (student.events || []).filter(e => e.type === 'absence').length;
+                const retenues = (student.events || []).filter(e => e.type === 'retenue').reduce((sum, e) => sum + (parseInt(e.duration) || 1), 0);
+                const obs = (student.events || []).filter(e => e.type === 'observation').length;
+
+                const isNoExit = student.autorisationSortie === 'Non';
+                const isCanteen = student.regime === 'Demi-pensionnaire';
+
+                const safeNom = sanitize(student.nom ? student.nom.toUpperCase() : '');
+                const safePrenom = sanitize(student.prenom);
+                const safeClasse = sanitize(student.classe);
+                const safeRegime = sanitize(student.regime);
+                const safeBadgeRepere = sanitize(student.badgeRepere || '');
+                const safeId = sanitize(student.id);
+
+                const card = document.createElement('div');
+                card.className = `rounded-xl p-4 sm:p-5 border shadow-xs hover:shadow-md transition relative flex flex-col justify-between group ${isNoExit ? 'card-no-exit' : 'bg-white border-slate-200'}`;
+
+                card.innerHTML = `
+                    <div>
+                        <div class="flex justify-between items-start gap-2">
+                            <div class="cursor-pointer flex-1" onclick="openStudentDetail('${safeId}')">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <h3 class="font-bold text-slate-800 text-base group-hover:text-indigo-600 transition">
+                                        ${safeNom} ${safePrenom}
+                                    </h3>
+                                </div>
+                                <div class="flex items-center gap-2 mt-1">
+                                    <span class="inline-block bg-slate-100 text-slate-700 font-semibold text-xs px-2.5 py-0.5 rounded-md border border-slate-200">${safeClasse}</span>
+                                    <span class="text-xs px-2 py-0.5 rounded-md font-medium ${isCanteen ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-blue-50 text-blue-700 border border-blue-200'}">
+                                        ${safeRegime}
+                                    </span>
+                                </div>
+                            </div>
+
+                            ${isCanteen ? `
+                                <div class="flex items-center gap-1 bg-emerald-600 text-white px-2 py-1 rounded-full text-[10px] font-bold shadow-xs shrink-0" title="Cet élève mange à la cantine">
+                                    <span class="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+                                    <span>CANTINE</span>
+                                </div>
+                            ` : ''}
+                        </div>
+
+                        <div class="mt-4 pt-3 border-t ${isNoExit ? 'border-red-200/60' : 'border-slate-100'} flex flex-col gap-2 text-xs">
+                            <div class="flex items-center justify-between gap-2">
+                                <div class="flex items-center gap-1.5 bg-white/80 backdrop-blur-xs px-2 py-1 rounded-lg border border-slate-200">
+                                    <span class="text-[11px] font-medium text-slate-600">Cantine :</span>
+                                    <button onclick="requestToggleCanteen('${safeId}', event)" class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isCanteen ? 'bg-emerald-500' : 'bg-slate-300'}" title="Activer / Désactiver la cantine">
+                                        <span class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${isCanteen ? 'translate-x-4' : 'translate-x-0'}"></span>
+                                    </button>
+                                </div>
+
+                                <div class="flex items-center gap-1.5 bg-white/80 backdrop-blur-xs px-2 py-1 rounded-lg border border-slate-200">
+                                    <span class="text-[11px] font-medium text-slate-600">Sortie :</span>
+                                    <button onclick="requestToggleExit('${safeId}', event)" class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${!isNoExit ? 'bg-emerald-500' : 'bg-rose-500'}" title="Autoriser / Interdire la sortie">
+                                        <span class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${!isNoExit ? 'translate-x-4' : 'translate-x-0'}"></span>
+                                    </button>
+                                    <span class="text-[10px] font-bold ${!isNoExit ? 'text-emerald-700' : 'text-rose-700'}">${!isNoExit ? 'OUI' : 'NON'}</span>
+                                </div>
+                            </div>
+
+                            ${isCanteen ? `
+                                <div class="flex items-center gap-1.5 bg-emerald-50/80 px-2 py-1.5 rounded-lg border border-emerald-200/80 text-emerald-900">
+                                    <i data-lucide="credit-card" class="w-3.5 h-3.5 text-emerald-600 shrink-0"></i>
+                                    <span class="text-[11px] font-semibold">N° Carte Repère:</span>
+                                    <input type="text" value="${safeBadgeRepere}" onchange="updateStudentRepereFromGrid('${safeId}', this.value)" placeholder="Saisir n° repère..." class="bg-white border border-emerald-300 rounded px-1.5 py-0.5 text-xs font-mono text-emerald-800 w-full outline-none focus:ring-1 focus:ring-emerald-500">
+                                </div>
+                            ` : ''}
+
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-4 gap-2 mt-3 pt-3 border-t ${isNoExit ? 'border-red-200/60' : 'border-slate-100'} text-center cursor-pointer" onclick="openStudentDetail('${safeId}')">
+                        <div class="bg-white/80 py-1.5 rounded-lg border border-slate-200/60">
+                            <span class="block text-[10px] text-slate-400 font-semibold uppercase">Retards</span>
+                            <span class="font-bold text-sm ${retards > 0 ? 'text-amber-600' : 'text-slate-600'}">${retards}</span>
+                        </div>
+                        <div class="bg-white/80 py-1.5 rounded-lg border border-slate-200/60">
+                            <span class="block text-[10px] text-slate-400 font-semibold uppercase">Absences</span>
+                            <span class="font-bold text-sm ${absences > 0 ? 'text-rose-600' : 'text-slate-600'}">${absences}</span>
+                        </div>
+                        <div class="bg-white/80 py-1.5 rounded-lg border border-slate-200/60">
+                            <span class="block text-[10px] text-slate-400 font-semibold uppercase">Retenues</span>
+                            <span class="font-bold text-sm ${retenues > 0 ? 'text-purple-600' : 'text-slate-600'}">${retenues}h</span>
+                        </div>
+                        <div class="bg-white/80 py-1.5 rounded-lg border border-slate-200/60">
+                            <span class="block text-[10px] text-slate-400 font-semibold uppercase">Obs.</span>
+                            <span class="font-bold text-sm ${obs > 0 ? 'text-blue-600' : 'text-slate-600'}">${obs}</span>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+
+            lucide.createIcons();
+        }
+
+        function toggleAbsenceJustified(eventId) {
+            if (!selectedStudentId) return;
+            const student = students.find(s => s.id === selectedStudentId);
+            if (!student) return;
+
+            const ev = (student.events || []).find(e => e.id === eventId);
+            if (ev && ev.type === 'absence') {
+                ev.justified = (ev.justified === 'Oui') ? 'Non' : 'Oui';
+                saveStorage();
+                renderHistoryTable(student);
+            }
+        }
+
+        function renderHistoryTable(student) {
+            const tbody = document.getElementById('historyTableBody');
+            const emptyHistory = document.getElementById('emptyHistory');
+            tbody.innerHTML = '';
+
+            const events = (student.events || []).slice().sort((a,b) => new Date(b.date) - new Date(a.date));
+
+            if (events.length === 0) {
+                emptyHistory.classList.remove('hidden');
+                return;
+            } else {
+                emptyHistory.classList.add('hidden');
+            }
+
+            events.forEach(ev => {
+                const tr = document.createElement('tr');
+                
+                let badgeClass = "bg-slate-100 text-slate-700";
+                let typeLabel = ev.type;
+                
+                if (ev.type === 'retard') { badgeClass = "bg-amber-100 text-amber-800"; typeLabel = "RETARD"; }
+                else if (ev.type === 'absence') { badgeClass = "bg-rose-100 text-rose-800"; typeLabel = "ABSENCE"; }
+                else if (ev.type === 'retenue') { badgeClass = "bg-purple-100 text-purple-800"; typeLabel = ev.pronoteType ? `RETENUE (${ev.pronoteType.toUpperCase()})` : "RETENUE / COLLE"; }
+                else if (ev.type === 'observation') { badgeClass = "bg-blue-100 text-blue-800"; typeLabel = "OBSERVATION"; }
+                else if (ev.type === 'sanction') { badgeClass = "bg-red-100 text-red-800 font-bold"; typeLabel = ev.pronoteType ? `SANCTION (${ev.pronoteType.toUpperCase()})` : "SANCTION"; }
+                else if (ev.type === 'carnet') { badgeClass = "bg-slate-200 text-slate-800"; typeLabel = "OUBLI CARNET"; }
+
+                const safeEvId = sanitize(ev.id);
+                let detailText = "--";
+                if (ev.type === 'absence') {
+                    const isJust = ev.justified === 'Oui';
+                    detailText = `
+                        <button onclick="toggleAbsenceJustified('${safeEvId}')" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border transition shadow-2xs ${isJust ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100' : 'bg-rose-50 text-rose-700 border-rose-300 hover:bg-rose-100'}" title="Tap pour changer le statut">
+                            <span class="w-2 h-2 rounded-full ${isJust ? 'bg-emerald-500' : 'bg-rose-500'}"></span>
+                            <span>${isJust ? 'Justifiée' : 'Non Justifiée'}</span>
+                            <i data-lucide="refresh-cw" class="w-3 h-3 ml-0.5 opacity-60"></i>
+                        </button>
+                    `;
+                } else if (ev.type === 'retenue') {
+                    detailText = `Durée: ${sanitize(ev.duration || 1)}h`;
+                } else if (ev.type === 'sanction' && ev.pronoteType) {
+                    detailText = `<span class="font-semibold text-xs text-red-700">${sanitize(ev.pronoteType)}</span>`;
+                }
+
+                const formattedDate = new Date(ev.date).toLocaleString('fr-FR', {
+                    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                });
+
+                const safeMotif = sanitize(ev.motif || '-');
+
+                tr.innerHTML = `
+                    <td class="py-3 px-4 text-xs font-medium text-slate-600">${sanitize(formattedDate)}</td>
+                    <td class="py-3 px-4"><span class="text-[11px] font-bold px-2 py-0.5 rounded-md ${badgeClass}">${sanitize(typeLabel)}</span></td>
+                    <td class="py-3 px-4 text-xs">${detailText}</td>
+                    <td class="py-3 px-4 text-xs text-slate-600">${safeMotif}</td>
+                    <td class="py-3 px-4 text-right no-print">
+                        <button onclick="deleteEvent('${safeEvId}')" class="text-rose-600 hover:text-rose-800 p-1 rounded hover:bg-rose-50 transition" title="Supprimer cet événement">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            lucide.createIcons();
+        }
+
+        function renderRecapCategoryCards(cat) {
+            const container = document.getElementById('recapCategoryList');
+            const emptyMsg = document.getElementById('recapEmptyMessage');
+            container.innerHTML = '';
+
+            const filteredStudents = students.filter(s => (s.events || []).some(e => e.type === cat));
+
+            if (filteredStudents.length === 0) {
+                emptyMsg.classList.remove('hidden');
+                return;
+            } else {
+                emptyMsg.classList.add('hidden');
+            }
+
+            filteredStudents.forEach(student => {
+                const catEvents = (student.events || []).filter(e => e.type === cat);
+                
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-xl p-4 border border-slate-200 shadow-xs hover:shadow-md transition cursor-pointer flex flex-col justify-between";
+                
+                card.onclick = () => openStudentDetail(student.id);
+
+                let listHtml = catEvents.map(e => {
+                    const formattedDate = new Date(e.date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+                    let detail = sanitize(e.motif || '');
+                    if (e.pronoteType) detail = `[${sanitize(e.pronoteType)}] ${detail}`;
+                    if (e.type === 'absence' && e.justified) detail += ` (${e.justified === 'Oui' ? 'Justifiée' : 'Non justifiée'})`;
+                    if (e.type === 'retenue' && e.duration) detail += ` (${sanitize(e.duration)}h)`;
+                    return `<li class="text-xs text-slate-600"><span class="font-semibold text-slate-800">${sanitize(formattedDate)} :</span> ${detail}</li>`;
+                }).join('');
+
+                const safeNom = sanitize(student.nom ? student.nom.toUpperCase() : '');
+                const safePrenom = sanitize(student.prenom);
+                const safeClasse = sanitize(student.classe);
+
+                card.innerHTML = `
+                    <div>
+                        <div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
+                            <div>
+                                <h4 class="font-bold text-slate-800 text-sm">${safeNom} ${safePrenom}</h4>
+                                <span class="text-xs text-slate-500 font-medium">${safeClasse}</span>
+                            </div>
+                            <span class="bg-indigo-50 text-indigo-700 text-xs font-bold px-2.5 py-1 rounded-full border border-indigo-200">
+                                ${catEvents.length}
+                            </span>
+                        </div>
+                        <ul class="mt-3 space-y-1 max-h-32 overflow-y-auto pr-1">
+                            ${listHtml}
+                        </ul>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // =========================================================
+        // 5. EVENT HANDLERS & NAVIGATION
+        // =========================================================
+        function setQuickFilter(type) {
+            currentQuickFilter = type;
+            
+            document.getElementById('btnFilterAll').className = type === 'all' 
+                ? "px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white shadow-xs flex items-center gap-1.5 transition" 
+                : "px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200 flex items-center gap-1.5 transition";
+
+            document.getElementById('btnFilterCanteen').className = type === 'canteen' 
+                ? "px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white shadow-xs flex items-center gap-1.5 transition" 
+                : "px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200 hover:bg-emerald-50 hover:text-emerald-700 flex items-center gap-1.5 transition";
+
+            document.getElementById('btnFilterNoExit').className = type === 'no-exit' 
+                ? "px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-600 text-white shadow-xs flex items-center gap-1.5 transition" 
+                : "px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200 hover:bg-rose-50 hover:text-rose-700 flex items-center gap-1.5 transition";
+
+            filterStudents();
+        }
+
+        function filterStudents() {
+            const query = document.getElementById('searchInput').value.toLowerCase().trim();
+            const selectedClass = document.getElementById('classFilter').value;
+
+            const filtered = students.filter(student => {
+                const fullName = `${student.nom} ${student.prenom}`.toLowerCase();
+                const reverseFullName = `${student.prenom} ${student.nom}`.toLowerCase();
+                const badge = (student.badgeCantine || '').toLowerCase();
+                const repere = (student.badgeRepere || '').toLowerCase();
+                
+                const matchesSearch = fullName.includes(query) || reverseFullName.includes(query) || (student.classe || '').toLowerCase().includes(query) || badge.includes(query) || repere.includes(query);
+                const matchesClass = selectedClass === "" || student.classe === selectedClass;
+
+                let matchesQuick = true;
+                if (currentQuickFilter === 'canteen') {
+                    matchesQuick = student.regime === 'Demi-pensionnaire';
+                } else if (currentQuickFilter === 'no-exit') {
+                    matchesQuick = student.autorisationSortie === 'Non';
+                }
+
+                return matchesSearch && matchesClass && matchesQuick;
+            });
+
+            renderStudentsGrid(filtered);
+        }
+
+        function updateStudentRepereFromGrid(studentId, badgeValue) {
+            const student = students.find(s => s.id === studentId);
+            if (student) {
+                student.badgeRepere = badgeValue.trim();
+                saveStorage();
+            }
+        }
+
+        function requestToggleCanteen(studentId, event) {
+            if (event) event.stopPropagation();
+            const student = students.find(s => s.id === studentId);
+            if (!student) return;
+
+            const isCurrentlyDP = student.regime === 'Demi-pensionnaire';
+            const newStatus = isCurrentlyDP ? 'Externe' : 'Demi-pensionnaire';
+
+            document.getElementById('toggleModalTitle').textContent = "Modifier le statut de cantine";
+            document.getElementById('toggleModalMessage').textContent = `Êtes-vous sûr de vouloir changer le statut de cantine de ${student.nom} ${student.prenom} à : ${newStatus} ?`;
+            
+            pendingToggleAction = () => {
+                student.regime = newStatus;
+                saveStorage();
+                filterStudents();
+            };
+
+            document.getElementById('confirmToggleModal').classList.remove('hidden');
+        }
+
+        function requestToggleExit(studentId, event) {
+            if (event) event.stopPropagation();
+            const student = students.find(s => s.id === studentId);
+            if (!student) return;
+
+            const newExit = student.autorisationSortie === 'Oui' ? 'Non' : 'Oui';
+
+            document.getElementById('toggleModalTitle').textContent = "Modifier l'autorisation de sortie";
+            document.getElementById('toggleModalMessage').textContent = `Êtes-vous sûr de vouloir ${newExit === 'Oui' ? 'AUTORISER' : 'INTERDIRE'} la sortie pour ${student.nom} ${student.prenom} ?`;
+
+            pendingToggleAction = () => {
+                student.autorisationSortie = newExit;
+                saveStorage();
+                filterStudents();
+            };
+
+            document.getElementById('confirmToggleModal').classList.remove('hidden');
+        }
+
+        function executePendingToggle() {
+            if (pendingToggleAction) {
+                pendingToggleAction();
+                pendingToggleAction = null;
+            }
+            closeModal('confirmToggleModal');
+        }
+
+        function showListPage() {
+            document.getElementById('pageDetail').classList.add('hidden');
+            document.getElementById('pageRecap').classList.add('hidden');
+            document.getElementById('pageList').classList.remove('hidden');
+            selectedStudentId = null;
+            filterStudents();
+        }
+
+        function openStudentDetail(id) {
+            selectedStudentId = id;
+            const student = students.find(s => s.id === id);
+            if (!student) return;
+
+            document.getElementById('detailName').textContent = `${(student.nom || '').toUpperCase()} ${student.prenom || ''}`;
+            
+            const initP = student.prenom && student.prenom.length > 0 ? student.prenom[0] : '-';
+            const initN = student.nom && student.nom.length > 0 ? student.nom[0] : '-';
+            document.getElementById('detailInitials').textContent = `${initP}${initN}`;
+            
+            document.getElementById('detailClass').textContent = student.classe || '';
+            document.getElementById('detailRegime').textContent = student.regime || '';
+            document.getElementById('detailProf').textContent = student.profPrincipal || 'Non renseigné';
+
+            const canteenIndicator = document.getElementById('detailCanteenIndicator');
+            const qrBox = document.getElementById('detailCanteenQRBox');
+            
+            if (student.regime === 'Demi-pensionnaire') {
+                canteenIndicator.classList.remove('hidden');
+                canteenIndicator.classList.add('flex');
+                
+                qrBox.classList.remove('hidden');
+                qrBox.classList.add('flex');
+
+                document.getElementById('canteenBadgeInput').value = student.badgeCantine || '';
+                generateCanteenQRCode(student.badgeCantine || student.id);
+            } else {
+                canteenIndicator.classList.add('hidden');
+                canteenIndicator.classList.remove('flex');
+                qrBox.classList.add('hidden');
+                qrBox.classList.remove('flex');
+            }
+
+            const exitBadge = document.getElementById('detailExitBadge');
+            if (student.autorisationSortie === 'Oui') {
+                exitBadge.textContent = "Autorisation de sortie: OUI";
+                exitBadge.className = "text-xs px-2.5 py-0.5 rounded-full border bg-emerald-500/20 text-emerald-200 border-emerald-400/30 font-medium";
+            } else {
+                exitBadge.textContent = "INTERDIT DE SORTIE";
+                exitBadge.className = "text-xs px-2.5 py-0.5 rounded-full border bg-rose-500/30 text-rose-200 border-rose-400/40 font-bold animate-pulse";
+            }
+
+            updateCounters(student);
+            renderHistoryTable(student);
+
+            document.getElementById('pageList').classList.add('hidden');
+            document.getElementById('pageRecap').classList.add('hidden');
+            document.getElementById('pageDetail').classList.remove('hidden');
+
+            lucide.createIcons();
+        }
+
+        function generateCanteenQRCode(val) {
+            const container = document.getElementById('qrcodeCanvas');
+            container.innerHTML = '';
+            
+            const qrContent = val && val.trim() ? val.trim() : 'SANS-BADGE';
+
+            qrCodeObj = new QRCode(container, {
+                text: qrContent,
+                width: 100,
+                height: 100,
+                colorDark : "#0f172a",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+        }
+
+        function updateCanteenBadgeNumber(val) {
+            if (!selectedStudentId) return;
+            const student = students.find(s => s.id === selectedStudentId);
+            if (student) {
+                student.badgeCantine = val.trim();
+                saveStorage();
+                generateCanteenQRCode(student.badgeCantine || student.id);
+            }
+        }
+
+        function updateCounters(student) {
+            const retards = (student.events || []).filter(e => e.type === 'retard').length;
+            const absences = (student.events || []).filter(e => e.type === 'absence').length;
+            const retenues = (student.events || []).filter(e => e.type === 'retenue').reduce((sum, e) => sum + (parseInt(e.duration) || 1), 0);
+            const obs = (student.events || []).filter(e => e.type === 'observation').length;
+            const sanctions = (student.events || []).filter(e => e.type === 'sanction').length;
+            const carnet = (student.events || []).filter(e => e.type === 'carnet').length;
+
+            document.getElementById('countRetards').textContent = retards;
+            document.getElementById('countAbsences').textContent = absences;
+            document.getElementById('countRetenues').textContent = `${retenues} h`;
+            document.getElementById('countObservations').textContent = obs;
+            document.getElementById('countSanctions').textContent = sanctions;
+            document.getElementById('countCarnet').textContent = carnet;
+        }
+
+        function openAddEventModal(type) {
+            if (!selectedStudentId) return;
+            
+            document.getElementById('eventTypeInput').value = type;
+            document.getElementById('eventModalTitle').textContent = `Ajouter : ${type.toUpperCase()}`;
+            
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            document.getElementById('eventDateInput').value = now.toISOString().slice(0, 16);
+
+            document.getElementById('justifiedField').classList.toggle('hidden', type !== 'absence');
+            document.getElementById('durationField').classList.toggle('hidden', type !== 'retenue');
+            document.getElementById('pronotePronoteTypeField').classList.toggle('hidden', type !== 'sanction');
+            document.getElementById('eventMotifInput').value = '';
+
+            document.getElementById('eventModal').classList.remove('hidden');
+        }
+
+        function handleSaveEvent(e) {
+            e.preventDefault();
+            if (!selectedStudentId) return;
+
+            const student = students.find(s => s.id === selectedStudentId);
+            if (!student) return;
+
+            const type = document.getElementById('eventTypeInput').value;
+            const date = document.getElementById('eventDateInput').value;
+            const motif = document.getElementById('eventMotifInput').value.trim();
+
+            const newEv = {
+                id: generateUUID(),
+                type,
+                date,
+                motif
+            };
+
+            if (type === 'absence') newEv.justified = document.getElementById('eventJustifiedInput').value;
+            if (type === 'retenue') newEv.duration = parseInt(document.getElementById('eventDurationInput').value) || 1;
+            if (type === 'sanction') newEv.pronoteType = document.getElementById('eventPronoteTypeInput').value;
+
+            if (!student.events) student.events = [];
+            student.events.push(newEv);
+
+            saveStorage();
+            closeModal('eventModal');
+
+            updateCounters(student);
+            renderHistoryTable(student);
+        }
+
+        function deleteEvent(eventId) {
+            if (!selectedStudentId) return;
+            const student = students.find(s => s.id === selectedStudentId);
+            if (!student) return;
+
+            student.events = (student.events || []).filter(e => e.id !== eventId);
+            saveStorage();
+
+            updateCounters(student);
+            renderHistoryTable(student);
+        }
+
+        // =========================================================
+        // 6. RECAPITULATIF PAGE
+        // =========================================================
+        function showRecapPage() {
+            document.getElementById('pageList').classList.add('hidden');
+            document.getElementById('pageDetail').classList.add('hidden');
+            document.getElementById('pageRecap').classList.remove('hidden');
+
+            updateRecapBadges();
+            switchRecapTab(currentRecapCategory);
+        }
+
+        function updateRecapBadges() {
+            const categories = ['retard', 'absence', 'retenue', 'observation', 'sanction', 'carnet'];
+            categories.forEach(cat => {
+                const count = students.filter(s => (s.events || []).some(e => e.type === cat)).length;
+                const badge = document.getElementById(`badge-${cat}`);
+                if (badge) badge.textContent = count;
+            });
+        }
+
+        function switchRecapTab(cat) {
+            currentRecapCategory = cat;
+            
+            const tabs = document.querySelectorAll('.recap-tab');
+            tabs.forEach(t => {
+                t.className = "recap-tab px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition text-slate-600 hover:bg-slate-100";
+            });
+
+            const activeTab = document.getElementById(`tab-${cat}`);
+            if (activeTab) {
+                activeTab.className = "recap-tab px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition bg-indigo-600 text-white shadow-xs";
+            }
+
+            renderRecapCategoryCards(cat);
+        }
+
+        // =========================================================
+        // 7. IMPORTATION VIE SCOLAIRE & PARSER PRONOTE / PUNITIONS
+        // =========================================================
+        function triggerAbsenceImport() {
+            document.getElementById('absenceFileInput').click();
+        }
+
+        function importAbsenceDataFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const extension = file.name.split('.').pop().toLowerCase();
+
+            if (extension === 'pdf') {
+                parseAbsencePDF(file);
+            } else if (['xlsx', 'xls', 'csv', 'txt'].includes(extension)) {
+                parseAbsenceExcelCSV(file);
+            } else {
+                alert("Format de fichier non pris en charge pour le relevé PRONOTE / Vie Scolaire.");
+            }
+
+            event.target.value = '';
+        }
+
+        function parseAbsencePDF(file) {
+            const fileReader = new FileReader();
+            fileReader.onload = function() {
+                const typedarray = new Uint8Array(this.result);
+                pdfjsLib.getDocument(typedarray).promise.then(pdf => {
+                    let totalPages = pdf.numPages;
+                    let countPromises = [];
+
+                    for (let i = 1; i <= totalPages; i++) {
+                        countPromises.push(pdf.getPage(i).then(page => {
+                            return page.getTextContent().then(textContent => {
+                                return textContent.items.map(s => s.str).join(' ');
+                            });
+                        }));
+                    }
+
+                    Promise.all(countPromises).then(pagesText => {
+                        const fullText = pagesText.join('\n');
+                        processExtractedTextForEvents(fullText);
+                    });
+                });
+            };
+            fileReader.readAsArrayBuffer(file);
+        }
+
+        function parseAbsenceExcelCSV(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const csvText = XLSX.utils.sheet_to_csv(worksheet);
+                
+                processExtractedTextForEvents(csvText);
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        /**
+         * Détecteur élargi PRONOTE : Retards, Absences, Retenues, Sanctions, Observations, Consignes, Blâmes, Commission, etc.
+         */
+        function processExtractedTextForEvents(text) {
+            let addedCount = 0;
+            const lines = text.split(/\r?\n/);
+
+            lines.forEach(line => {
+                if (!line.trim()) return;
+
+                // Match pour trouver les élèves correspondants
+                students.forEach(student => {
+                    const nom = (student.nom || '').trim().toLowerCase();
+                    const prenom = (student.prenom || '').trim().toLowerCase();
+
+                    if (!nom || !prenom) return;
+
+                    const lineLower = line.toLowerCase();
+
+                    // Recherche du nom et prénom dans la ligne de relevé
+                    if (lineLower.includes(nom) && lineLower.includes(prenom)) {
+                        
+                        let eventType = null;
+                        let pronoteType = null;
+                        let duration = 1;
+                        let justified = 'Non';
+
+                        // 1. PUNITIONS & SANCTIONS PRONOTE
+                        if (lineLower.includes('retenue') || lineLower.includes('colle') || lineLower.includes('consigne')) {
+                            eventType = 'retenue';
+                            pronoteType = 'Retenue';
+                            const durMatch = lineLower.match(/(\d+)\s*h/);
+                            if (durMatch) duration = parseInt(durMatch[1]) || 1;
+                        } else if (lineLower.includes('exclusion')) {
+                            eventType = 'sanction';
+                            pronoteType = 'Exclusion de cours';
+                        } else if (lineLower.includes('avertissement')) {
+                            eventType = 'sanction';
+                            pronoteType = 'Avertissement';
+                        } else if (lineLower.includes('blâme') || lineLower.includes('blame')) {
+                            eventType = 'sanction';
+                            pronoteType = 'Blâme';
+                        } else if (lineLower.includes('commission')) {
+                            eventType = 'sanction';
+                            pronoteType = 'Commission éducative';
+                        } else if (lineLower.includes('conseil de discipline')) {
+                            eventType = 'sanction';
+                            pronoteType = 'Conseil de discipline';
+                        } else if (lineLower.includes('devoir supplémentaire') || lineLower.includes('devoir sup')) {
+                            eventType = 'sanction';
+                            pronoteType = 'Devoir supplémentaire';
+                        } else if (lineLower.includes('travail d\'intérêt général') || lineLower.includes('tig')) {
+                            eventType = 'sanction';
+                            pronoteType = 'Travail d\'intérêt général';
+                        } else if (lineLower.includes('mise en garde')) {
+                            eventType = 'sanction';
+                            pronoteType = 'Mise en garde';
+                        }
+                        
+                        // 2. RETARDS
+                        else if (lineLower.includes('retard')) {
+                            eventType = 'retard';
+                        }
+
+                        // 3. ABSENCES
+                        else if (lineLower.includes('absent') || lineLower.includes('absence')) {
+                            eventType = 'absence';
+                            if (lineLower.includes('justifié') || lineLower.includes('justifiee')) {
+                                justified = 'Oui';
+                            }
+                        }
+
+                        // 4. OUBLI CARNET / MATÉRIEL OU OBSERVATIONS
+                        else if (lineLower.includes('carnet')) {
+                            eventType = 'carnet';
+                        } else if (lineLower.includes('observation') || lineLower.includes('bavardage') || lineLower.includes('matériel') || lineLower.includes('materiel')) {
+                            eventType = 'observation';
+                        }
+
+                        // Ajout de l'événement s'il est reconnu
+                        if (eventType) {
+                            if (!student.events) student.events = [];
+                            
+                            student.events.push({
+                                id: generateUUID(),
+                                type: eventType,
+                                pronoteType: pronoteType,
+                                date: new Date().toISOString().slice(0, 16),
+                                justified: justified,
+                                duration: duration,
+                                motif: line.trim()
+                            });
+                            addedCount++;
+                        }
+                    }
+                });
+            });
+
+            saveStorage();
+            populateClassFilter();
+            filterStudents();
+
+            alert(`Importation Vie Scolaire terminée ! ${addedCount} événement(s) / punition(s) PRONOTE ajouté(s) aux élèves.`);
+        }
+
+        function openClearVieScolaireModal() {
+            document.getElementById('clearVieScolaireModal').classList.remove('hidden');
+        }
+
+        function executeClearVieScolaireData() {
+            students.forEach(s => {
+                s.events = [];
+            });
+            saveStorage();
+            closeModal('clearVieScolaireModal');
+            filterStudents();
+            alert("Tous les événements et punitions ont été supprimés.");
+        }
+
+        // =========================================================
+        // 8. FONCTIONNALITÉ SPECIFIQUE : SAUVEGARDE ET RESTAURATION DES CARTES DE CANTINE
+        // =========================================================
+        function exportCanteenCardsJSON() {
+            const canteenCards = students.filter(s => s.regime === 'Demi-pensionnaire' || s.badgeCantine || s.badgeRepere).map(s => ({
+                nom: s.nom,
+                prenom: s.prenom,
+                classe: s.classe,
+                badgeCantine: s.badgeCantine || '',
+                badgeRepere: s.badgeRepere || ''
+            }));
+
+            if (canteenCards.length === 0) {
+                alert("Aucune carte de cantine ou numéro de badge à sauvegarder.");
+                return;
+            }
+
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(canteenCards, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `Sauvegarder_Cartes_Cantine_${new Date().toISOString().slice(0,10)}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function triggerCanteenCardsImport() {
+            document.getElementById('canteenCardsInput').click();
+        }
+
+        function importCanteenCardsJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedCards = JSON.parse(e.target.result);
+                    if (Array.isArray(importedCards)) {
+                        let matchedCount = 0;
+
+                        importedCards.forEach(card => {
+                            const cardNom = (card.nom || '').trim().toLowerCase();
+                            const cardPrenom = (card.prenom || '').trim().toLowerCase();
+
+                            const student = students.find(s => 
+                                (s.nom || '').trim().toLowerCase() === cardNom && 
+                                (s.prenom || '').trim().toLowerCase() === cardPrenom
+                            );
+
+                            if (student) {
+                                if (card.badgeCantine) student.badgeCantine = card.badgeCantine;
+                                if (card.badgeRepere) student.badgeRepere = card.badgeRepere;
+                                matchedCount++;
+                            }
+                        });
+
+                        saveStorage();
+                        filterStudents();
+                        if (selectedStudentId) {
+                            const current = students.find(s => s.id === selectedStudentId);
+                            if (current) openStudentDetail(current.id);
+                        }
+                        alert(`${matchedCount} carte(s) de cantine associée(s) aux élèves existants !`);
+                    } else {
+                        alert("Le fichier de cartes de cantine est invalide.");
+                    }
+                } catch(err) {
+                    alert("Erreur lors de la lecture du fichier de cartes de cantine.");
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        // =========================================================
+        // 9. AUTRES MODALES ET ACTIONS (STUDENT, EXPORT, DB)
+        // =========================================================
+        function openAddStudentModal() {
+            document.getElementById('addStudentForm').reset();
+            document.getElementById('addStudentModal').classList.remove('hidden');
+        }
+
+        function handleAddStudent(e) {
+            e.preventDefault();
+            const newStudent = {
+                id: generateUUID(),
+                nom: document.getElementById('newNom').value.trim().toUpperCase(),
+                prenom: document.getElementById('newPrenom').value.trim(),
+                classe: document.getElementById('newClasse').value.trim(),
+                regime: document.getElementById('newRegime').value,
+                autorisationSortie: document.getElementById('newAutorisation').value,
+                profPrincipal: document.getElementById('newProf').value.trim(),
+                badgeRepere: '',
+                badgeCantine: '',
+                events: []
+            };
+
+            students.push(newStudent);
+            saveStorage();
+            populateClassFilter();
+            closeModal('addStudentModal');
+            filterStudents();
+        }
+
+        function confirmDeleteStudent() {
+            if (!selectedStudentId) return;
+            document.getElementById('deleteModal').classList.remove('hidden');
+        }
+
+        function executeDeleteStudent() {
+            if (!selectedStudentId) return;
+            students = students.filter(s => s.id !== selectedStudentId);
+            saveStorage();
+            closeModal('deleteModal');
+            showListPage();
+            populateClassFilter();
+        }
+
+        function openResetModal() {
+            document.getElementById('resetDbModal').classList.remove('hidden');
+        }
+
+        function executeResetDb() {
+            students = [];
+            saveStorage();
+            closeModal('resetDbModal');
+            populateClassFilter();
+            filterStudents();
+            alert("La base de données a été réinitialisée.");
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+        }
+
+        function triggerJsonImport() {
+            document.getElementById('jsonInput').click();
+        }
+
+        function importJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (Array.isArray(imported)) {
+                        students = imported;
+                        saveStorage();
+                        populateClassFilter();
+                        filterStudents();
+                        alert("Sauvegarde restaurée avec succès !");
+                    } else {
+                        alert("Le fichier JSON fourni est invalide.");
+                    }
+                } catch(err) {
+                    alert("Erreur lors de la lecture du fichier JSON.");
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        function exportJSON() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(students, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `Sauvegarde_VieScolaire_${new Date().toISOString().slice(0,10)}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function triggerFileImport() {
+            document.getElementById('fileInput').click();
+        }
+
+        function importDataFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                let importedCount = 0;
+                for (let i = 1; i < json.length; i++) {
+                    const row = json[i];
+                    if (!row || row.length < 2) continue;
+
+                    const nom = String(row[0] || '').trim().toUpperCase();
+                    const prenom = String(row[1] || '').trim();
+                    const classe = String(row[2] || '').trim();
+                    const regime = String(row[3] || 'Demi-pensionnaire').trim();
+                    const auto = String(row[4] || 'Oui').trim();
+                    const prof = String(row[5] || '').trim();
+
+                    if (nom && prenom) {
+                        students.push({
+                            id: generateUUID(),
+                            nom,
+                            prenom,
+                            classe,
+                            regime,
+                            autorisationSortie: auto,
+                            profPrincipal: prof,
+                            badgeRepere: '',
+                            badgeCantine: '',
+                            events: []
+                        });
+                        importedCount++;
+                    }
+                }
+
+                saveStorage();
+                populateClassFilter();
+                filterStudents();
+                alert(`${importedCount} élève(s) importé(s) avec succès !`);
+            };
+            reader.readAsArrayBuffer(file);
+            event.target.value = '';
+        }
+
+        function exportGlobalCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,ID,Nom,Prenom,Classe,Regime,AutorisationSortie,ProfPrincipal,BadgeRepere,BadgeCantine,Retards,Absences,RetenuesHeures,Observations,Sanctions\n";
+            
+            students.forEach(s => {
+                const retards = (s.events || []).filter(e => e.type === 'retard').length;
+                const absences = (s.events || []).filter(e => e.type === 'absence').length;
+                const retenues = (s.events || []).filter(e => e.type === 'retenue').reduce((sum, e) => sum + (parseInt(e.duration) || 1), 0);
+                const obs = (s.events || []).filter(e => e.type === 'observation').length;
+                const sanctions = (s.events || []).filter(e => e.type === 'sanction').length;
+
+                csvContent += `"${s.id}","${s.nom}","${s.prenom}","${s.classe}","${s.regime}","${s.autorisationSortie}","${s.profPrincipal || ''}","${s.badgeRepere || ''}","${s.badgeCantine || ''}",${retards},${absences},${retenues},${obs},${sanctions}\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Export_VieScolaire_Global_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        }
+
+        function openExportClassModal() {
+            document.getElementById('exportClassModal').classList.remove('hidden');
+        }
+
+        function handleExportClassExcel(e) {
+            e.preventDefault();
+            const targetClass = document.getElementById('exportClassSelect').value;
+            const exportType = document.getElementById('exportTypeSelect').value;
+
+            const wb = XLSX.utils.book_new();
+
+            const classesToExport = targetClass === 'ALL' 
+                ? [...new Set(students.map(s => s.classe))].filter(Boolean).sort()
+                : [targetClass];
+
+            classesToExport.forEach(c => {
+                const classStudents = students.filter(s => s.classe === c);
+                
+                if (exportType === 'summary' || exportType === 'both') {
+                    const summaryData = classStudents.map(s => ({
+                        'Nom': s.nom,
+                        'Prénom': s.prenom,
+                        'Classe': s.classe,
+                        'Régime': s.regime,
+                        'Autorisation Sortie': s.autorisationSortie,
+                        'N° Badge Cantine': s.badgeCantine || '',
+                        'N° Carte Repère': s.badgeRepere || '',
+                        'Retards': (s.events || []).filter(e => e.type === 'retard').length,
+                        'Absences': (s.events || []).filter(e => e.type === 'absence').length,
+                        'Heures Retenues': (s.events || []).filter(e => e.type === 'retenue').reduce((sum, e) => sum + (parseInt(e.duration) || 1), 0),
+                        'Observations': (s.events || []).filter(e => e.type === 'observation').length,
+                        'Sanctions': (s.events || []).filter(e => e.type === 'sanction').length
+                    }));
+                    const ws = XLSX.utils.json_to_sheet(summaryData);
+                    XLSX.utils.book_append_sheet(wb, ws, `${c.substring(0,25)}_Synthèse`);
+                }
+
+                if (exportType === 'details' || exportType === 'both') {
+                    const detailRows = [];
+                    classStudents.forEach(s => {
+                        (s.events || []).forEach(e => {
+                            detailRows.push({
+                                'Nom': s.nom,
+                                'Prénom': s.prenom,
+                                'Classe': s.classe,
+                                'Date': new Date(e.date).toLocaleString('fr-FR'),
+                                'Type Événement': e.type,
+                                'Spécificité PRONOTE': e.pronoteType || '',
+                                'Justifié': e.justified || '',
+                                'Durée (h)': e.duration || '',
+                                'Motif': e.motif || ''
+                            });
+                        });
+                    });
+                    if (detailRows.length > 0) {
+                        const wsDetail = XLSX.utils.json_to_sheet(detailRows);
+                        XLSX.utils.book_append_sheet(wb, wsDetail, `${c.substring(0,25)}_Détails`);
+                    }
+                }
+            });
+
+            XLSX.writeFile(wb, `Export_VieScolaire_${targetClass}_${new Date().toISOString().slice(0,10)}.xlsx`);
+            closeModal('exportClassModal');
+        }
+
+        function exportStudentPDF() {
+            window.print();
+        }
+    </script>
+</body>
+</html>
