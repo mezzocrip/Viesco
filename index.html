@@ -725,6 +725,42 @@
             });
         }
 
+        /**
+         * Helper pour partager ou télécharger un fichier JSON (support natif iOS via Web Share API)
+         */
+        async function exportJSONFile(data, filename, title) {
+            const jsonString = JSON.stringify(data, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const file = new File([blob], filename, { type: 'application/json' });
+
+            // Détection du mode partage natif (iOS / Safari / Mobile)
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                try {
+                    await navigator.share({
+                        files: [file],
+                        title: title,
+                        text: filename
+                    });
+                    return;
+                } catch (err) {
+                    if (err.name !== 'AbortError') {
+                        console.error("Erreur de partage natif iOS:", err);
+                    } else {
+                        return; // L'utilisateur a annulé le partage
+                    }
+                }
+            }
+
+            // Repli classique en téléchargement Web standard
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.href = URL.createObjectURL(blob);
+            downloadAnchor.download = filename;
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            URL.revokeObjectURL(downloadAnchor.href);
+        }
+
         // =========================================================
         // 3. STORAGE & LIFECYCLE
         // =========================================================
@@ -1518,9 +1554,9 @@
         }
 
         // =========================================================
-        // 8. FONCTIONNALITÉ SPECIFIQUE : SAUVEGARDE ET RESTAURATION DES CARTES DE CANTINE
+        // 8. FONCTIONNALITÉ SPÉCIFIQUE : SAUVEGARDE ET RESTAURATION DES CARTES DE CANTINE
         // =========================================================
-        function exportCanteenCardsJSON() {
+        async function exportCanteenCardsJSON() {
             const canteenCards = students.filter(s => s.regime === 'Demi-pensionnaire' || s.badgeCantine || s.badgeRepere).map(s => ({
                 nom: s.nom,
                 prenom: s.prenom,
@@ -1534,13 +1570,8 @@
                 return;
             }
 
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(canteenCards, null, 2));
-            const downloadAnchor = document.createElement('a');
-            downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", `Sauvegarder_Cartes_Cantine_${new Date().toISOString().slice(0,10)}.json`);
-            document.body.appendChild(downloadAnchor);
-            downloadAnchor.click();
-            downloadAnchor.remove();
+            const filename = `Sauvegarder_Cartes_Cantine_${new Date().toISOString().slice(0,10)}.json`;
+            await exportJSONFile(canteenCards, filename, "Sauvegarde Cartes Cantine");
         }
 
         function triggerCanteenCardsImport() {
@@ -1614,34 +1645,8 @@
         }
 
         async function exportJSON() {
-    const fileName = `Sauvegarde_VieScolaire_${new Date().toISOString().slice(0,10)}.json`;
-    const jsonString = JSON.stringify(students, null, 2);
-    const blob = new Blob([jsonString], { type: 'application/json' });
-    const file = new File([blob], fileName, { type: 'application/json' });
-
-    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-        try {
-            await navigator.share({
-                title: 'Sauvegarde VieScolaire',
-                text: 'Fichier de sauvegarde complet des élèves et données Vie Scolaire.',
-                files: [file]
-            });
-        } catch (err) {
-            if (err.name !== 'AbortError') {
-                console.error("Erreur de partage :", err);
-            }
-        }
-    } else {
-        const downloadAnchor = document.createElement('a');
-        downloadAnchor.href = URL.createObjectURL(blob);
-        downloadAnchor.download = fileName;
-        document.body.appendChild(downloadAnchor);
-        downloadAnchor.click();
-        downloadAnchor.remove();
-        URL.revokeObjectURL(downloadAnchor.href);
-    }
-}
-
+            const filename = `Sauvegarde_VieScolaire_${new Date().toISOString().slice(0,10)}.json`;
+            await exportJSONFile(students, filename, "Sauvegarde VieScolaire");
         }
 
         function openResetModal() {
@@ -1744,171 +1749,47 @@
                             'Régime': s.regime || '',
                             'Autorisation Sortie': s.autorisationSortie || '',
                             'N° Badge Cantine': s.badgeCantine || '',
-                            'N° Carte Repère': s.badgeRepere || '',
-                            'Nb Retards': retards,
-                            'Nb Absences': absences,
+                            'N° Badge Repère': s.badgeRepere || '',
+                            'Prof Principal': s.profPrincipal || '',
+                            'Retards': retards,
+                            'Absences': absences,
                             'Heures Retenue': retenues,
-                            'Nb Observations': obs,
-                            'Nb Sanctions': sanctions
+                            'Observations': obs,
+                            'Sanctions': sanctions
                         };
                     });
 
                     const wsSummary = XLSX.utils.json_to_sheet(summaryData);
-                    const sheetName = selectedClass === 'ALL' ? `${cls.slice(0, 25)}_Synthèse` : 'Synthèse';
-                    XLSX.utils.book_append_sheet(wb, wsSummary, sheetName);
+                    XLSX.utils.book_append_sheet(wb, wsSummary, `${cls.replace(/[^a-zA-Z0-9]/g, '_')}_Synthese`);
                 }
 
                 if (exportType === 'details' || exportType === 'both') {
-                    let detailsData = [];
+                    const detailRows = [];
                     classStudents.forEach(s => {
                         (s.events || []).forEach(ev => {
-                            detailsData.push({
+                            detailRows.push({
                                 'Nom': s.nom ? s.nom.toUpperCase() : '',
                                 'Prénom': s.prenom || '',
                                 'Classe': s.classe || '',
-                                'Date & Heure': new Date(ev.date).toLocaleString('fr-FR'),
-                                'Type': ev.type ? ev.type.toUpperCase() : '',
-                                'Sous-type / Sanction': ev.pronoteType || '-',
-                                'Statut / Durée': ev.type === 'absence' || ev.type === 'retard' ? (ev.justified === 'Oui' ? 'Justifié(e)' : 'Non Justifié(e)') : (ev.type === 'retenue' ? `${ev.duration || 1}h` : '-'),
-                                'Motif': ev.motif || '-'
+                                'Date Événement': ev.date ? new Date(ev.date).toLocaleString('fr-FR') : '',
+                                'Type Événement': ev.type ? ev.type.toUpperCase() : '',
+                                'Sous-type PRONOTE': ev.pronoteType || '',
+                                'Durée (h)': ev.duration || '',
+                                'Justifié': ev.justified || '',
+                                'Motif / Commentaire': ev.motif || ''
                             });
                         });
                     });
 
-                    if (detailsData.length === 0) {
-                        detailsData = [{'Nom': '-', 'Prénom': '-', 'Classe': cls, 'Information': 'Aucun événement enregistré'}];
+                    if (detailRows.length > 0) {
+                        const wsDetails = XLSX.utils.json_to_sheet(detailRows);
+                        XLSX.utils.book_append_sheet(wb, wsDetails, `${cls.replace(/[^a-zA-Z0-9]/g, '_')}_Details`);
                     }
-
-                    const wsDetails = XLSX.utils.json_to_sheet(detailsData);
-                    const sheetName = selectedClass === 'ALL' ? `${cls.slice(0, 25)}_Détails` : 'Détails Événements';
-                    XLSX.utils.book_append_sheet(wb, wsDetails, sheetName);
                 }
             });
 
             XLSX.writeFile(wb, `Export_VieScolaire_${selectedClass}_${new Date().toISOString().slice(0,10)}.xlsx`);
             closeModal('exportClassModal');
-        }
-
-        function exportGlobalCSV() {
-            let csvRows = [];
-            csvRows.push(['Nom', 'Prénom', 'Classe', 'Régime', 'Autorisation Sortie', 'Badge Cantine', 'Carte Repère', 'Type Événement', 'Date', 'Motif', 'Justifié', 'Durée (h)'].join(';'));
-
-            students.forEach(s => {
-                if (!s.events || s.events.length === 0) {
-                    csvRows.push([
-                        `"${s.nom || ''}"`,
-                        `"${s.prenom || ''}"`,
-                        `"${s.classe || ''}"`,
-                        `"${s.regime || ''}"`,
-                        `"${s.autorisationSortie || ''}"`,
-                        `"${s.badgeCantine || ''}"`,
-                        `"${s.badgeRepere || ''}"`,
-                        '""', '""', '""', '""', '""'
-                    ].join(';'));
-                } else {
-                    s.events.forEach(ev => {
-                        csvRows.push([
-                            `"${s.nom || ''}"`,
-                            `"${s.prenom || ''}"`,
-                            `"${s.classe || ''}"`,
-                            `"${s.regime || ''}"`,
-                            `"${s.autorisationSortie || ''}"`,
-                            `"${s.badgeCantine || ''}"`,
-                            `"${s.badgeRepere || ''}"`,
-                            `"${ev.type || ''}"`,
-                            `"${ev.date || ''}"`,
-                            `"${(ev.motif || '').replace(/"/g, '""')}"`,
-                            `"${ev.justified || ''}"`,
-                            `"${ev.duration || ''}"`
-                        ].join(';'));
-                    });
-                }
-            });
-
-            const csvString = csvRows.join('\n');
-            const blob = new Blob(["\ufeff" + csvString], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const downloadAnchor = document.createElement('a');
-            downloadAnchor.setAttribute("href", url);
-            downloadAnchor.setAttribute("download", `Export_Global_VieScolaire_${new Date().toISOString().slice(0,10)}.csv`);
-            document.body.appendChild(downloadAnchor);
-            downloadAnchor.click();
-            downloadAnchor.remove();
-        }
-
-        function triggerFileImport() {
-            document.getElementById('fileInput').click();
-        }
-
-        function importDataFile(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const firstSheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[firstSheetName];
-                const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-
-                if (json.length > 1) {
-                    let importedStudents = [];
-                    for (let i = 1; i < json.length; i++) {
-                        const row = json[i];
-                        if (!row || row.length === 0) continue;
-
-                        const nom = row[0] ? String(row[0]).trim() : '';
-                        const prenom = row[1] ? String(row[1]).trim() : '';
-                        const classe = row[2] ? String(row[2]).trim() : '';
-                        const regime = row[3] ? String(row[3]).trim() : 'Demi-pensionnaire';
-                        const autorisationSortie = row[4] ? String(row[4]).trim() : 'Oui';
-                        const profPrincipal = row[5] ? String(row[5]).trim() : '';
-
-                        if (nom && prenom) {
-                            importedStudents.push({
-                                id: generateUUID(),
-                                nom,
-                                prenom,
-                                classe,
-                                regime,
-                                autorisationSortie,
-                                profPrincipal,
-                                badgeRepere: '',
-                                badgeCantine: '',
-                                events: []
-                            });
-                        }
-                    }
-
-                    if (importedStudents.length > 0) {
-                        students = importedStudents;
-                        saveStorage();
-                        populateClassFilter();
-                        filterStudents();
-                        alert(`${importedStudents.length} élève(s) importé(s) avec succès !`);
-                    } else {
-                        alert("Aucun élève valide trouvé dans le fichier.");
-                    }
-                }
-            };
-            reader.readAsArrayBuffer(file);
-            event.target.value = '';
-        }
-
-        function exportStudentPDF() {
-            if (!selectedStudentId) return;
-            const element = document.getElementById('studentDetailCard');
-            
-            const opt = {
-                margin:       [0.5, 0.5, 0.5, 0.5],
-                filename:     `Fiche_Eleve_${new Date().toISOString().slice(0,10)}.pdf`,
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true },
-                jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
-            };
-
-            html2pdf().set(opt).from(element).save();
         }
     </script>
 </body>
