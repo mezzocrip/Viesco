@@ -1613,14 +1613,35 @@
             event.target.value = '';
         }
 
-        function exportJSON() {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(students, null, 2));
-            const downloadAnchor = document.createElement('a');
-            downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", `Sauvegarde_VieScolaire_${new Date().toISOString().slice(0,10)}.json`);
-            document.body.appendChild(downloadAnchor);
-            downloadAnchor.click();
-            downloadAnchor.remove();
+        async function exportJSON() {
+    const fileName = `Sauvegarde_VieScolaire_${new Date().toISOString().slice(0,10)}.json`;
+    const jsonString = JSON.stringify(students, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const file = new File([blob], fileName, { type: 'application/json' });
+
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+            await navigator.share({
+                title: 'Sauvegarde VieScolaire',
+                text: 'Fichier de sauvegarde complet des élèves et données Vie Scolaire.',
+                files: [file]
+            });
+        } catch (err) {
+            if (err.name !== 'AbortError') {
+                console.error("Erreur de partage :", err);
+            }
+        }
+    } else {
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.href = URL.createObjectURL(blob);
+        downloadAnchor.download = fileName;
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+        URL.revokeObjectURL(downloadAnchor.href);
+    }
+}
+
         }
 
         function openResetModal() {
