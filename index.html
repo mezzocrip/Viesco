@@ -725,6 +725,37 @@
             });
         }
 
+        async function saveOrShareFile(content, fileName, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const file = new File([blob], fileName, { type: mimeType });
+
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                try {
+                    await navigator.share({
+                        files: [file],
+                        title: fileName,
+                        text: 'Sauvegarde VieScolaire Pro'
+                    });
+                    return;
+                } catch (err) {
+                    if (err.name !== 'AbortError') {
+                        console.warn('Erreur lors du partage iOS, bascule sur le téléchargement standard:', err);
+                    } else {
+                        return;
+                    }
+                }
+            }
+
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
         // =========================================================
         // 3. STORAGE & LIFECYCLE
         // =========================================================
@@ -1196,9 +1227,9 @@
 
             qrCodeObj = new QRCode(container, {
                 text: qrContent,
-                width: 100,
-                height: 100,
-                colorDark : "#0f172a",
+                width: 80,
+                height: 80,
+                colorDark : "#000000",
                 colorLight : "#ffffff",
                 correctLevel : QRCode.CorrectLevel.H
             });
@@ -1207,44 +1238,54 @@
         function updateCanteenBadgeNumber(val) {
             if (!selectedStudentId) return;
             const student = students.find(s => s.id === selectedStudentId);
-            if (student) {
-                student.badgeCantine = val.trim();
-                saveStorage();
-                generateCanteenQRCode(student.badgeCantine || student.id);
-            }
+            if (!student) return;
+
+            student.badgeCantine = val.trim();
+            saveStorage();
+            generateCanteenQRCode(student.badgeCantine || student.id);
         }
 
         function updateCounters(student) {
-            const retards = (student.events || []).filter(e => e.type === 'retard').length;
-            const absences = (student.events || []).filter(e => e.type === 'absence').length;
-            const retenues = (student.events || []).filter(e => e.type === 'retenue').reduce((sum, e) => sum + (parseInt(e.duration) || 1), 0);
-            const obs = (student.events || []).filter(e => e.type === 'observation').length;
-            const sanctions = (student.events || []).filter(e => e.type === 'sanction').length;
-            const carnet = (student.events || []).filter(e => e.type === 'carnet').length;
+            const events = student.events || [];
+            
+            const retards = events.filter(e => e.type === 'retard').length;
+            const absences = events.filter(e => e.type === 'absence').length;
+            const retenues = events.filter(e => e.type === 'retenue').reduce((sum, e) => sum + (parseInt(e.duration) || 1), 0);
+            const observations = events.filter(e => e.type === 'observation').length;
+            const sanctions = events.filter(e => e.type === 'sanction').length;
+            const carnet = events.filter(e => e.type === 'carnet').length;
 
             document.getElementById('countRetards').textContent = retards;
             document.getElementById('countAbsences').textContent = absences;
             document.getElementById('countRetenues').textContent = `${retenues} h`;
-            document.getElementById('countObservations').textContent = obs;
+            document.getElementById('countObservations').textContent = observations;
             document.getElementById('countSanctions').textContent = sanctions;
             document.getElementById('countCarnet').textContent = carnet;
         }
 
         function openAddEventModal(type) {
-            if (!selectedStudentId) return;
-            
             document.getElementById('eventTypeInput').value = type;
-            document.getElementById('eventModalTitle').textContent = `Ajouter : ${type.toUpperCase()}`;
             
+            const titles = {
+                retard: "Ajouter un Retard",
+                absence: "Ajouter une Absence",
+                retenue: "Ajouter une Retenue",
+                observation: "Ajouter une Observation",
+                sanction: "Ajouter une Sanction / Punition",
+                carnet: "Ajouter un Oubli de Carnet"
+            };
+
+            document.getElementById('eventModalTitle').textContent = titles[type] || "Ajouter un événement";
+
             const now = new Date();
             now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-            document.getElementById('eventDateInput').value = now.toISOString().slice(0, 16);
+            document.getElementById('eventDateInput').value = now.toISOString().slice(0,16);
 
             document.getElementById('justifiedField').classList.toggle('hidden', type !== 'absence' && type !== 'retard');
             document.getElementById('durationField').classList.toggle('hidden', type !== 'retenue');
             document.getElementById('pronotePunitionTypeField').classList.toggle('hidden', type !== 'sanction');
-            document.getElementById('eventMotifInput').value = '';
 
+            document.getElementById('eventMotifInput').value = '';
             document.getElementById('eventModal').classList.remove('hidden');
         }
 
@@ -1257,27 +1298,30 @@
 
             const type = document.getElementById('eventTypeInput').value;
             const date = document.getElementById('eventDateInput').value;
-            const motif = document.getElementById('eventMotifInput').value.trim();
+            const motif = document.getElementById('eventMotifInput').value;
 
-            const newEv = {
+            const newEvent = {
                 id: generateUUID(),
                 type,
                 date,
                 motif
             };
 
-            if (type === 'absence' || type === 'retard') newEv.justified = document.getElementById('eventJustifiedInput').value;
-            if (type === 'retenue') newEv.duration = parseInt(document.getElementById('eventDurationInput').value) || 1;
-            if (type === 'sanction') newEv.pronoteType = document.getElementById('eventPronoteTypeInput').value;
+            if (type === 'absence' || type === 'retard') {
+                newEvent.justified = document.getElementById('eventJustifiedInput').value;
+            } else if (type === 'retenue') {
+                newEvent.duration = parseInt(document.getElementById('eventDurationInput').value) || 1;
+            } else if (type === 'sanction') {
+                newEvent.pronoteType = document.getElementById('eventPronoteTypeInput').value;
+            }
 
             if (!student.events) student.events = [];
-            student.events.push(newEv);
+            student.events.push(newEvent);
 
             saveStorage();
-            closeModal('eventModal');
-
             updateCounters(student);
             renderHistoryTable(student);
+            closeModal('eventModal');
         }
 
         function deleteEvent(eventId) {
@@ -1287,366 +1331,19 @@
 
             student.events = (student.events || []).filter(e => e.id !== eventId);
             saveStorage();
-
             updateCounters(student);
             renderHistoryTable(student);
         }
 
-        // =========================================================
-        // 6. RECAPITULATIF PAGE
-        // =========================================================
-        function showRecapPage() {
-            document.getElementById('pageList').classList.add('hidden');
-            document.getElementById('pageDetail').classList.add('hidden');
-            document.getElementById('pageRecap').classList.remove('hidden');
-
-            updateRecapBadges();
-            switchRecapTab(currentRecapCategory);
-        }
-
-        function updateRecapBadges() {
-            const categories = ['retard', 'absence', 'retenue', 'observation', 'sanction', 'carnet'];
-            categories.forEach(cat => {
-                const count = students.filter(s => (s.events || []).some(e => e.type === cat)).length;
-                const badge = document.getElementById(`badge-${cat}`);
-                if (badge) badge.textContent = count;
-            });
-        }
-
-        function switchRecapTab(cat) {
-            currentRecapCategory = cat;
-            
-            const tabs = document.querySelectorAll('.recap-tab');
-            tabs.forEach(t => {
-                t.className = "recap-tab px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition text-slate-600 hover:bg-slate-100";
-            });
-
-            const activeTab = document.getElementById(`tab-${cat}`);
-            if (activeTab) {
-                activeTab.className = "recap-tab px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition bg-indigo-600 text-white shadow-xs";
-            }
-
-            renderRecapCategoryCards(cat);
-        }
-
-        // =========================================================
-        // 7. IMPORTATION VIE SCOLAIRE & PARSER PRONOTE / PUNITIONS
-        // =========================================================
-        function triggerAbsenceImport() {
-            document.getElementById('absenceFileInput').click();
-        }
-
-        function importAbsenceDataFile(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const extension = file.name.split('.').pop().toLowerCase();
-
-            if (extension === 'pdf') {
-                parseAbsencePDF(file);
-            } else if (['xlsx', 'xls', 'csv', 'txt'].includes(extension)) {
-                parseAbsenceExcelCSV(file);
-            } else {
-                alert("Format de fichier non pris en charge pour le relevé PRONOTE / Vie Scolaire.");
-            }
-
-            event.target.value = '';
-        }
-
-        function parseAbsencePDF(file) {
-            const fileReader = new FileReader();
-            fileReader.onload = function() {
-                const typedarray = new Uint8Array(this.result);
-                pdfjsLib.getDocument(typedarray).promise.then(pdf => {
-                    let totalPages = pdf.numPages;
-                    let countPromises = [];
-
-                    for (let i = 1; i <= totalPages; i++) {
-                        countPromises.push(pdf.getPage(i).then(page => {
-                            return page.getTextContent().then(textContent => {
-                                return textContent.items.map(s => s.str).join(' ');
-                            });
-                        }));
-                    }
-
-                    Promise.all(countPromises).then(pagesText => {
-                        const fullText = pagesText.join('\n');
-                        processExtractedTextForEvents(fullText);
-                    });
-                });
-            };
-            fileReader.readAsArrayBuffer(file);
-        }
-
-        function parseAbsenceExcelCSV(file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const firstSheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[firstSheetName];
-                const csvText = XLSX.utils.sheet_to_csv(worksheet);
-                
-                processExtractedTextForEvents(csvText);
-            };
-            reader.readAsArrayBuffer(file);
-        }
-
-        /**
-         * Détecteur élargi PRONOTE : Retards, Absences, Retenues, Sanctions, Observations, Consignes, Blâmes, Commission, etc.
-         */
-        function processExtractedTextForEvents(text) {
-            let addedCount = 0;
-            const lines = text.split(/\r?\n/);
-
-            lines.forEach(line => {
-                if (!line.trim()) return;
-
-                // Match pour trouver les élèves correspondants
-                students.forEach(student => {
-                    const nom = (student.nom || '').trim().toLowerCase();
-                    const prenom = (student.prenom || '').trim().toLowerCase();
-
-                    if (!nom || !prenom) return;
-
-                    const lineLower = line.toLowerCase();
-
-                    // Recherche du nom et prénom dans la ligne de relevé
-                    if (lineLower.includes(nom) && lineLower.includes(prenom)) {
-                        
-                        let eventType = null;
-                        let pronoteType = null;
-                        let duration = 1;
-                        let justified = 'Non';
-
-                        // Détection de la présence du mot "oui" pour valider la justification
-                        const hasOui = /\boui\b/i.test(lineLower);
-
-                        // 1. PUNITIONS & SANCTIONS PRONOTE
-                        if (lineLower.includes('retenue') || lineLower.includes('colle') || lineLower.includes('consigne')) {
-                            eventType = 'retenue';
-                            pronoteType = 'Retenue';
-                            const durMatch = lineLower.match(/(\d+)\s*h/);
-                            if (durMatch) duration = parseInt(durMatch[1]) || 1;
-                        } else if (lineLower.includes('exclusion')) {
-                            eventType = 'sanction';
-                            pronoteType = 'Exclusion de cours';
-                        } else if (lineLower.includes('avertissement')) {
-                            eventType = 'sanction';
-                            pronoteType = 'Avertissement';
-                        } else if (lineLower.includes('blâme') || lineLower.includes('blame')) {
-                            eventType = 'sanction';
-                            pronoteType = 'Blâme';
-                        } else if (lineLower.includes('commission')) {
-                            eventType = 'sanction';
-                            pronoteType = 'Commission éducative';
-                        } else if (lineLower.includes('conseil de discipline')) {
-                            eventType = 'sanction';
-                            pronoteType = 'Conseil de discipline';
-                        } else if (lineLower.includes('devoir supplémentaire') || lineLower.includes('devoir sup')) {
-                            eventType = 'sanction';
-                            pronoteType = 'Devoir supplémentaire';
-                        } else if (lineLower.includes('travail d\'intérêt général') || lineLower.includes('tig')) {
-                            eventType = 'sanction';
-                            pronoteType = 'Travail d\'intérêt général';
-                        } else if (lineLower.includes('mise en garde')) {
-                            eventType = 'sanction';
-                            pronoteType = 'Mise en garde';
-                        }
-                        
-                        // 2. RETARDS
-                        else if (lineLower.includes('retard')) {
-                            eventType = 'retard';
-                            if (hasOui || lineLower.includes('justifié') || lineLower.includes('justifiee')) {
-                                justified = 'Oui';
-                            }
-                        }
-
-                        // 3. ABSENCES
-                        else if (lineLower.includes('absent') || lineLower.includes('absence')) {
-                            eventType = 'absence';
-                            if (hasOui || lineLower.includes('justifié') || lineLower.includes('justifiee')) {
-                                justified = 'Oui';
-                            }
-                        }
-
-                        // 4. OUBLI CARNET / MATÉRIEL OU OBSERVATIONS
-                        else if (lineLower.includes('carnet')) {
-                            eventType = 'carnet';
-                        } else if (lineLower.includes('observation') || lineLower.includes('bavardage') || lineLower.includes('matériel') || lineLower.includes('materiel')) {
-                            eventType = 'observation';
-                        }
-
-                        // Ajout de l'événement s'il est reconnu
-                        if (eventType) {
-                            if (!student.events) student.events = [];
-                            
-                            student.events.push({
-                                id: generateUUID(),
-                                type: eventType,
-                                pronoteType: pronoteType,
-                                date: new Date().toISOString().slice(0, 16),
-                                justified: justified,
-                                duration: duration,
-                                motif: line.trim()
-                            });
-                            addedCount++;
-                        }
-                    }
-                });
-            });
-
-            saveStorage();
-            populateClassFilter();
-            filterStudents();
-
-            alert(`Importation Vie Scolaire terminée ! ${addedCount} événement(s) / punition(s) PRONOTE ajouté(s) aux élèves.`);
-        }
-
-        function openClearVieScolaireModal() {
-            document.getElementById('clearVieScolaireModal').classList.remove('hidden');
-        }
-
-        function executeClearVieScolaireData() {
-            students.forEach(s => {
-                s.events = [];
-            });
-            saveStorage();
-            closeModal('clearVieScolaireModal');
-            filterStudents();
-            alert("Tous les événements et punitions ont été supprimés.");
-        }
-
-        // =========================================================
-        // 8. FONCTIONNALITÉ SPECIFIQUE : SAUVEGARDE ET RESTAURATION DES CARTES DE CANTINE
-        // =========================================================
-        function exportCanteenCardsJSON() {
-            const canteenCards = students.filter(s => s.regime === 'Demi-pensionnaire' || s.badgeCantine || s.badgeRepere).map(s => ({
-                nom: s.nom,
-                prenom: s.prenom,
-                classe: s.classe,
-                badgeCantine: s.badgeCantine || '',
-                badgeRepere: s.badgeRepere || ''
-            }));
-
-            if (canteenCards.length === 0) {
-                alert("Aucune carte de cantine ou numéro de badge à sauvegarder.");
-                return;
-            }
-
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(canteenCards, null, 2));
-            const downloadAnchor = document.createElement('a');
-            downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", `Sauvegarder_Cartes_Cantine_${new Date().toISOString().slice(0,10)}.json`);
-            document.body.appendChild(downloadAnchor);
-            downloadAnchor.click();
-            downloadAnchor.remove();
-        }
-
-        function triggerCanteenCardsImport() {
-            document.getElementById('canteenCardsInput').click();
-        }
-
-        function importCanteenCardsJSON(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const importedCards = JSON.parse(e.target.result);
-                    if (Array.isArray(importedCards)) {
-                        let matchedCount = 0;
-
-                        importedCards.forEach(card => {
-                            const cardNom = (card.nom || '').trim().toLowerCase();
-                            const cardPrenom = (card.prenom || '').trim().toLowerCase();
-
-                            const student = students.find(s => 
-                                (s.nom || '').trim().toLowerCase() === cardNom && 
-                                (s.prenom || '').trim().toLowerCase() === cardPrenom
-                            );
-
-                            if (student) {
-                                if (card.badgeCantine) student.badgeCantine = card.badgeCantine;
-                                if (card.badgeRepere) student.badgeRepere = card.badgeRepere;
-                                matchedCount++;
-                            }
-                        });
-
-                        saveStorage();
-                        filterStudents();
-                        alert(`${matchedCount} carte(s) de cantine restaurée(s) avec succès !`);
-                    }
-                } catch(err) {
-                    alert("Erreur lors de la lecture du fichier JSON de cartes de cantine.");
-                }
-            };
-            reader.readAsText(file);
-            event.target.value = '';
-        }
-
-        function triggerJsonImport() {
-            document.getElementById('jsonInput').click();
-        }
-
-        function importJSON(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const data = JSON.parse(e.target.result);
-                    if (Array.isArray(data)) {
-                        students = data;
-                        saveStorage();
-                        populateClassFilter();
-                        filterStudents();
-                        alert("Base de données restaurée avec succès !");
-                    }
-                } catch(err) {
-                    alert("Fichier JSON invalide.");
-                }
-            };
-            reader.readAsText(file);
-            event.target.value = '';
-        }
-
-        function exportJSON() {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(students, null, 2));
-            const downloadAnchor = document.createElement('a');
-            downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", `Sauvegarde_VieScolaire_${new Date().toISOString().slice(0,10)}.json`);
-            document.body.appendChild(downloadAnchor);
-            downloadAnchor.click();
-            downloadAnchor.remove();
-        }
-
-        function openResetModal() {
-            document.getElementById('resetDbModal').classList.remove('hidden');
-        }
-
-        function executeResetDb() {
-            students = [];
-            saveStorage();
-            populateClassFilter();
-            filterStudents();
-            closeModal('resetDbModal');
-            alert("La base de données a été réinitialisée.");
-        }
-
-        function closeModal(id) {
-            document.getElementById(id).classList.add('hidden');
-        }
-
         function openAddStudentModal() {
+            document.getElementById('addStudentForm').reset();
             document.getElementById('addStudentModal').classList.remove('hidden');
         }
 
         function handleAddStudent(e) {
             e.preventDefault();
-            const nom = document.getElementById('newNom').value.trim();
+            
+            const nom = document.getElementById('newNom').value.trim().toUpperCase();
             const prenom = document.getElementById('newPrenom').value.trim();
             const classe = document.getElementById('newClasse').value.trim();
             const regime = document.getElementById('newRegime').value;
@@ -1671,12 +1368,9 @@
             populateClassFilter();
             filterStudents();
             closeModal('addStudentModal');
-
-            document.getElementById('addStudentForm').reset();
         }
 
         function confirmDeleteStudent() {
-            if (!selectedStudentId) return;
             document.getElementById('deleteModal').classList.remove('hidden');
         }
 
@@ -1689,130 +1383,397 @@
             showListPage();
         }
 
-        function openExportClassModal() {
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+        }
+
+        function showRecapPage() {
+            document.getElementById('pageList').classList.add('hidden');
+            document.getElementById('pageDetail').classList.add('hidden');
+            document.getElementById('pageRecap').classList.remove('hidden');
+
+            updateRecapBadges();
+            switchRecapTab(currentRecapCategory);
+        }
+
+        function updateRecapBadges() {
+            const categories = ['retard', 'absence', 'retenue', 'observation', 'sanction', 'carnet'];
+            categories.forEach(cat => {
+                const count = students.filter(s => (s.events || []).some(e => e.type === cat)).length;
+                const badge = document.getElementById(`badge-${cat}`);
+                if (badge) badge.textContent = count;
+            });
+        }
+
+        function switchRecapTab(cat) {
+            currentRecapCategory = cat;
+            const categories = ['retard', 'absence', 'retenue', 'observation', 'sanction', 'carnet'];
+            
+            categories.forEach(c => {
+                const tab = document.getElementById(`tab-${c}`);
+                const badge = document.getElementById(`badge-${c}`);
+                if (c === cat) {
+                    tab.className = "recap-tab px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition bg-indigo-600 text-white shadow-xs";
+                    if (badge) badge.className = "bg-indigo-800 text-white text-[10px] px-1.5 py-0.5 rounded-full ml-1";
+                } else {
+                    tab.className = "recap-tab px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition text-slate-600 hover:bg-slate-100";
+                    if (badge) badge.className = "bg-slate-200 text-slate-700 text-[10px] px-1.5 py-0.5 rounded-full ml-1";
+                }
+            });
+
+            renderRecapCategoryCards(cat);
+        }
+
+        function openResetModal() {
+            document.getElementById('resetDbModal').classList.remove('hidden');
+        }
+
+        function executeResetDb() {
+            students = [];
+            saveStorage();
             populateClassFilter();
+            filterStudents();
+            closeModal('resetDbModal');
+            alert("La base de données a été réinitialisée.");
+        }
+
+        function openClearVieScolaireModal() {
+            document.getElementById('clearVieScolaireModal').classList.remove('hidden');
+        }
+
+        function executeClearVieScolaireData() {
+            students.forEach(student => {
+                student.events = [];
+            });
+            saveStorage();
+            if (selectedStudentId) {
+                const student = students.find(s => s.id === selectedStudentId);
+                if (student) {
+                    updateCounters(student);
+                    renderHistoryTable(student);
+                }
+            } else {
+                filterStudents();
+            }
+            closeModal('clearVieScolaireModal');
+            alert("Les événements de vie scolaire ont tous été effacés.");
+        }
+
+        function triggerAbsenceImport() {
+            document.getElementById('absenceFileInput').click();
+        }
+
+        function importAbsenceDataFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                    if (!jsonData || jsonData.length < 2) {
+                        alert("Le fichier semble vide ou ne contient pas de lignes de données.");
+                        return;
+                    }
+
+                    let addedEventsCount = 0;
+                    const headers = jsonData[0].map(h => String(h || '').toLowerCase().trim());
+                    
+                    const nomIdx = headers.findIndex(h => h.includes('nom'));
+                    const prenomIdx = headers.findIndex(h => h.includes('prénom') || h.includes('prenom'));
+                    const typeIdx = headers.findIndex(h => h.includes('type') || h.includes('nature') || h.includes('événement') || h.includes('evenement'));
+                    const dateIdx = headers.findIndex(h => h.includes('date'));
+                    const motifIdx = headers.findIndex(h => h.includes('motif') || h.includes('commentaire') || h.includes('raison'));
+
+                    for (let i = 1; i < jsonData.length; i++) {
+                        const row = jsonData[i];
+                        if (!row || row.length === 0) continue;
+
+                        const nom = nomIdx !== -1 ? String(row[nomIdx] || '').trim() : '';
+                        const prenom = prenomIdx !== -1 ? String(row[prenomIdx] || '').trim() : '';
+                        
+                        if (!nom && !prenom) continue;
+
+                        const student = students.find(s => 
+                            (nom ? s.nom.toUpperCase() === nom.toUpperCase() : true) &&
+                            (prenom ? s.prenom.toLowerCase() === prenom.toLowerCase() : true)
+                        );
+
+                        if (student) {
+                            let rawType = typeIdx !== -1 ? String(row[typeIdx] || '').toLowerCase() : 'observation';
+                            let eventType = 'observation';
+
+                            if (rawType.includes('retard')) eventType = 'retard';
+                            else if (rawType.includes('absenc')) eventType = 'absence';
+                            else if (rawType.includes('retenue') || rawType.includes('colle')) eventType = 'retenue';
+                            else if (rawType.includes('sanction') || rawType.includes('punition')) eventType = 'sanction';
+                            else if (rawType.includes('carnet')) eventType = 'carnet';
+
+                            const rawDate = dateIdx !== -1 ? row[dateIdx] : new Date().toISOString();
+                            const motif = motifIdx !== -1 ? String(row[motifIdx] || '') : '';
+
+                            if (!student.events) student.events = [];
+                            student.events.push({
+                                id: generateUUID(),
+                                type: eventType,
+                                date: new Date(rawDate).toISOString ? new Date(rawDate).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16),
+                                motif: motif
+                            });
+                            addedEventsCount++;
+                        }
+                    }
+
+                    saveStorage();
+                    filterStudents();
+                    alert(`Importation Vie Scolaire terminée : ${addedEventsCount} évènement(s) importé(s) !`);
+                } catch(err) {
+                    console.error("Erreur d'importation Vie Scolaire :", err);
+                    alert("Erreur lors de la lecture du fichier de relevé Vie Scolaire.");
+                }
+            };
+            reader.readAsArrayBuffer(file);
+            event.target.value = '';
+        }
+
+        // =========================================================
+        // 6. EXPORT / IMPORT / SAUVEGARDE / PARTAGE iOS
+        // =========================================================
+
+        async function exportJSON() {
+            const dataStr = JSON.stringify(students, null, 2);
+            const dateStr = new Date().toISOString().slice(0, 10);
+            const fileName = `viescolaire_backup_${dateStr}.json`;
+
+            await saveOrShareFile(dataStr, fileName, 'application/json');
+        }
+
+        async function exportCanteenCardsJSON() {
+            const canteenCards = students
+                .filter(s => s.regime === 'Demi-pensionnaire' || s.badgeCantine || s.badgeRepere)
+                .map(s => ({
+                    nom: s.nom,
+                    prenom: s.prenom,
+                    classe: s.classe,
+                    badgeCantine: s.badgeCantine || '',
+                    badgeRepere: s.badgeRepere || ''
+                }));
+
+            if (canteenCards.length === 0) {
+                alert("Aucune donnée de carte de cantine à exporter.");
+                return;
+            }
+
+            const dataStr = JSON.stringify(canteenCards, null, 2);
+            const dateStr = new Date().toISOString().slice(0, 10);
+            const fileName = `cartes_cantine_backup_${dateStr}.json`;
+
+            await saveOrShareFile(dataStr, fileName, 'application/json');
+        }
+
+        function triggerJsonImport() {
+            document.getElementById('jsonInput').click();
+        }
+
+        function importJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    if (Array.isArray(importedData)) {
+                        students = importedData;
+                        saveStorage();
+                        populateClassFilter();
+                        filterStudents();
+                        alert("Restauration de la base effectuée avec succès !");
+                    } else {
+                        alert("Format de fichier JSON invalide.");
+                    }
+                } catch(err) {
+                    alert("Erreur lors de la lecture du fichier JSON.");
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        function triggerCanteenCardsImport() {
+            document.getElementById('canteenCardsInput').click();
+        }
+
+        function importCanteenCardsJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedCards = JSON.parse(e.target.result);
+                    if (!Array.isArray(importedCards)) {
+                        alert("Format de fichier JSON invalide.");
+                        return;
+                    }
+
+                    let matchCount = 0;
+                    importedCards.forEach(card => {
+                        const student = students.find(s => 
+                            s.nom && card.nom && s.nom.toUpperCase() === card.nom.toUpperCase() &&
+                            s.prenom && card.prenom && s.prenom.toLowerCase() === card.prenom.toLowerCase()
+                        );
+
+                        if (student) {
+                            if (card.badgeCantine) student.badgeCantine = card.badgeCantine;
+                            if (card.badgeRepere) student.badgeRepere = card.badgeRepere;
+                            matchCount++;
+                        }
+                    });
+
+                    saveStorage();
+                    filterStudents();
+                    alert(`Restauration terminée : ${matchCount} cartes réassociées avec succès !`);
+                } catch(err) {
+                    alert("Erreur lors de l'importation des cartes de cantine.");
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        function exportGlobalCSV() {
+            let csv = "\uFEFF";
+            csv += "Nom;Prénom;Classe;Régime;Autorisation Sortie;Prof Principal;Badge Repère;Badge Cantine;Retards;Absences;Retenues(h);Observations;Sanctions;Oublis Carnet\n";
+
+            students.forEach(s => {
+                const events = s.events || [];
+                const retards = events.filter(e => e.type === 'retard').length;
+                const absences = events.filter(e => e.type === 'absence').length;
+                const retenues = events.filter(e => e.type === 'retenue').reduce((sum, e) => sum + (parseInt(e.duration) || 1), 0);
+                const obs = events.filter(e => e.type === 'observation').length;
+                const sanctions = events.filter(e => e.type === 'sanction').length;
+                const carnet = events.filter(e => e.type === 'carnet').length;
+
+                csv += `"${s.nom || ''}";"${s.prenom || ''}";"${s.classe || ''}";"${s.regime || ''}";"${s.autorisationSortie || ''}";"${s.profPrincipal || ''}";"${s.badgeRepere || ''}";"${s.badgeCantine || ''}";${retards};${absences};${retenues};${obs};${sanctions};${carnet}\n`;
+            });
+
+            const dateStr = new Date().toISOString().slice(0, 10);
+            saveOrShareFile(csv, `export_global_viescolaire_${dateStr}.csv`, 'text/csv;charset=utf-8;');
+        }
+
+        function openExportClassModal() {
             document.getElementById('exportClassModal').classList.remove('hidden');
         }
 
         function handleExportClassExcel(e) {
             e.preventDefault();
-            const selectedClass = document.getElementById('exportClassSelect').value;
+            const targetClass = document.getElementById('exportClassSelect').value;
             const exportType = document.getElementById('exportTypeSelect').value;
 
             const wb = XLSX.utils.book_new();
 
-            const classesToExport = selectedClass === 'ALL' 
+            const classesToExport = targetClass === 'ALL' 
                 ? [...new Set(students.map(s => s.classe))].filter(Boolean).sort()
-                : [selectedClass];
+                : [targetClass];
 
             classesToExport.forEach(cls => {
                 const classStudents = students.filter(s => s.classe === cls);
-                
+                if (classStudents.length === 0) return;
+
                 if (exportType === 'summary' || exportType === 'both') {
                     const summaryData = classStudents.map(s => {
-                        const retards = (s.events || []).filter(ev => ev.type === 'retard').length;
-                        const absences = (s.events || []).filter(ev => ev.type === 'absence').length;
-                        const retenues = (s.events || []).filter(ev => ev.type === 'retenue').reduce((sum, ev) => sum + (parseInt(ev.duration) || 1), 0);
-                        const obs = (s.events || []).filter(ev => ev.type === 'observation').length;
-                        const sanctions = (s.events || []).filter(ev => ev.type === 'sanction').length;
-
+                        const events = s.events || [];
                         return {
-                            'Nom': s.nom ? s.nom.toUpperCase() : '',
-                            'Prénom': s.prenom || '',
-                            'Classe': s.classe || '',
-                            'Régime': s.regime || '',
-                            'Autorisation Sortie': s.autorisationSortie || '',
-                            'N° Badge Cantine': s.badgeCantine || '',
-                            'N° Carte Repère': s.badgeRepere || '',
-                            'Nb Retards': retards,
-                            'Nb Absences': absences,
-                            'Heures Retenue': retenues,
-                            'Nb Observations': obs,
-                            'Nb Sanctions': sanctions
+                            "Nom": s.nom || '',
+                            "Prénom": s.prenom || '',
+                            "Classe": s.classe || '',
+                            "Régime": s.regime || '',
+                            "Autorisation Sortie": s.autorisationSortie || '',
+                            "Prof Principal": s.profPrincipal || '',
+                            "Badge Repère": s.badgeRepere || '',
+                            "Badge Cantine": s.badgeCantine || '',
+                            "Retards": events.filter(e => e.type === 'retard').length,
+                            "Absences": events.filter(e => e.type === 'absence').length,
+                            "Retenues (h)": events.filter(e => e.type === 'retenue').reduce((sum, e) => sum + (parseInt(e.duration) || 1), 0),
+                            "Observations": events.filter(e => e.type === 'observation').length,
+                            "Sanctions": events.filter(e => e.type === 'sanction').length,
+                            "Oublis Carnet": events.filter(e => e.type === 'carnet').length
                         };
                     });
-
                     const wsSummary = XLSX.utils.json_to_sheet(summaryData);
-                    const sheetName = selectedClass === 'ALL' ? `${cls.slice(0, 25)}_Synthèse` : 'Synthèse';
+                    const sheetName = targetClass === 'ALL' ? cls.substring(0, 31) : 'Synthèse';
                     XLSX.utils.book_append_sheet(wb, wsSummary, sheetName);
                 }
 
                 if (exportType === 'details' || exportType === 'both') {
-                    let detailsData = [];
+                    const detailRows = [];
                     classStudents.forEach(s => {
                         (s.events || []).forEach(ev => {
-                            detailsData.push({
-                                'Nom': s.nom ? s.nom.toUpperCase() : '',
-                                'Prénom': s.prenom || '',
-                                'Classe': s.classe || '',
-                                'Date & Heure': new Date(ev.date).toLocaleString('fr-FR'),
-                                'Type': ev.type ? ev.type.toUpperCase() : '',
-                                'Sous-type / Sanction': ev.pronoteType || '-',
-                                'Statut / Durée': ev.type === 'absence' || ev.type === 'retard' ? (ev.justified === 'Oui' ? 'Justifié(e)' : 'Non Justifié(e)') : (ev.type === 'retenue' ? `${ev.duration || 1}h` : '-'),
-                                'Motif': ev.motif || '-'
+                            detailRows.push({
+                                "Nom": s.nom || '',
+                                "Prénom": s.prenom || '',
+                                "Classe": s.classe || '',
+                                "Date": ev.date ? new Date(ev.date).toLocaleString('fr-FR') : '',
+                                "Type": ev.type || '',
+                                "Type PRONOTE": ev.pronoteType || '',
+                                "Justifié": ev.justified || '',
+                                "Durée (h)": ev.duration || '',
+                                "Motif / Commentaire": ev.motif || ''
                             });
                         });
                     });
 
-                    if (detailsData.length === 0) {
-                        detailsData = [{'Nom': '-', 'Prénom': '-', 'Classe': cls, 'Information': 'Aucun événement enregistré'}];
+                    if (detailRows.length > 0) {
+                        const wsDetails = XLSX.utils.json_to_sheet(detailRows);
+                        const sheetName = targetClass === 'ALL' ? `${cls.substring(0, 23)}_Détails` : 'Historique Détaillé';
+                        XLSX.utils.book_append_sheet(wb, wsDetails, sheetName);
                     }
-
-                    const wsDetails = XLSX.utils.json_to_sheet(detailsData);
-                    const sheetName = selectedClass === 'ALL' ? `${cls.slice(0, 25)}_Détails` : 'Détails Événements';
-                    XLSX.utils.book_append_sheet(wb, wsDetails, sheetName);
                 }
             });
 
-            XLSX.writeFile(wb, `Export_VieScolaire_${selectedClass}_${new Date().toISOString().slice(0,10)}.xlsx`);
+            if (wb.SheetNames.length === 0) {
+                alert("Aucune donnée disponible à exporter pour la sélection.");
+                return;
+            }
+
+            const dateStr = new Date().toISOString().slice(0, 10);
+            XLSX.writeFile(wb, `export_classe_viescolaire_${targetClass}_${dateStr}.xlsx`);
             closeModal('exportClassModal');
         }
 
-        function exportGlobalCSV() {
-            let csvRows = [];
-            csvRows.push(['Nom', 'Prénom', 'Classe', 'Régime', 'Autorisation Sortie', 'Badge Cantine', 'Carte Repère', 'Type Événement', 'Date', 'Motif', 'Justifié', 'Durée (h)'].join(';'));
+        function exportStudentPDF() {
+            if (!selectedStudentId) return;
+            const student = students.find(s => s.id === selectedStudentId);
+            if (!student) return;
 
-            students.forEach(s => {
-                if (!s.events || s.events.length === 0) {
-                    csvRows.push([
-                        `"${s.nom || ''}"`,
-                        `"${s.prenom || ''}"`,
-                        `"${s.classe || ''}"`,
-                        `"${s.regime || ''}"`,
-                        `"${s.autorisationSortie || ''}"`,
-                        `"${s.badgeCantine || ''}"`,
-                        `"${s.badgeRepere || ''}"`,
-                        '""', '""', '""', '""', '""'
-                    ].join(';'));
-                } else {
-                    s.events.forEach(ev => {
-                        csvRows.push([
-                            `"${s.nom || ''}"`,
-                            `"${s.prenom || ''}"`,
-                            `"${s.classe || ''}"`,
-                            `"${s.regime || ''}"`,
-                            `"${s.autorisationSortie || ''}"`,
-                            `"${s.badgeCantine || ''}"`,
-                            `"${s.badgeRepere || ''}"`,
-                            `"${ev.type || ''}"`,
-                            `"${ev.date || ''}"`,
-                            `"${(ev.motif || '').replace(/"/g, '""')}"`,
-                            `"${ev.justified || ''}"`,
-                            `"${ev.duration || ''}"`
-                        ].join(';'));
-                    });
+            const element = document.getElementById('studentDetailCard');
+            html2canvas(element, { scale: 2 }).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const imgWidth = 210;
+                const pageHeight = 295;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                let heightLeft = imgHeight;
+                let position = 0;
+
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+
+                while (heightLeft >= 0) {
+                    position = heightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
                 }
-            });
 
-            const csvString = csvRows.join('\n');
-            const blob = new Blob(["\ufeff" + csvString], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const downloadAnchor = document.createElement('a');
-            downloadAnchor.setAttribute("href", url);
-            downloadAnchor.setAttribute("download", `Export_Global_VieScolaire_${new Date().toISOString().slice(0,10)}.csv`);
-            document.body.appendChild(downloadAnchor);
-            downloadAnchor.click();
-            downloadAnchor.remove();
+                pdf.save(`Fiche_${student.nom}_${student.prenom}.pdf`);
+            });
         }
 
         function triggerFileImport() {
@@ -1825,27 +1786,77 @@
 
             const reader = new FileReader();
             reader.onload = function(e) {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const firstSheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[firstSheetName];
-                const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-                if (json.length > 1) {
-                    let importedStudents = [];
-                    for (let i = 1; i < json.length; i++) {
-                        const row = json[i];
+                    if (!jsonData || jsonData.length < 2) {
+                        alert("Le fichier semble vide ou ne contient pas suffisamment de données.");
+                        return;
+                    }
+
+                    let addedCount = 0;
+                    let updatedCount = 0;
+
+                    const headers = jsonData[0].map(h => String(h || '').toLowerCase().trim());
+                    
+                    const nomIdx = headers.findIndex(h => h.includes('nom'));
+                    const prenomIdx = headers.findIndex(h => h.includes('prénom') || h.includes('prenom'));
+                    const classeIdx = headers.findIndex(h => h.includes('classe') || h.includes('groupe'));
+                    const regimeIdx = headers.findIndex(h => h.includes('régime') || h.includes('regime') || h.includes('qualité') || h.includes('qualite'));
+                    const sortieIdx = headers.findIndex(h => h.includes('sortie') || h.includes('autorisation'));
+                    const profIdx = headers.findIndex(h => h.includes('prof') || h.includes('pp'));
+                    const repereIdx = headers.findIndex(h => h.includes('repère') || h.includes('repere'));
+                    const cantineIdx = headers.findIndex(h => h.includes('cantine') || h.includes('badge'));
+
+                    for (let i = 1; i < jsonData.length; i++) {
+                        const row = jsonData[i];
                         if (!row || row.length === 0) continue;
 
-                        const nom = row[0] ? String(row[0]).trim() : '';
-                        const prenom = row[1] ? String(row[1]).trim() : '';
-                        const classe = row[2] ? String(row[2]).trim() : '';
-                        const regime = row[3] ? String(row[3]).trim() : 'Demi-pensionnaire';
-                        const autorisationSortie = row[4] ? String(row[4]).trim() : 'Oui';
-                        const profPrincipal = row[5] ? String(row[5]).trim() : '';
+                        const nom = nomIdx !== -1 ? String(row[nomIdx] || '').trim().toUpperCase() : '';
+                        const prenom = prenomIdx !== -1 ? String(row[prenomIdx] || '').trim() : '';
+                        
+                        if (!nom || !prenom) continue;
 
-                        if (nom && prenom) {
-                            importedStudents.push({
+                        const classe = classeIdx !== -1 ? String(row[classeIdx] || '').trim() : 'Non assignée';
+                        let regime = regimeIdx !== -1 ? String(row[regimeIdx] || '').trim() : 'Externe';
+                        if (regime.toLowerCase().includes('demi') || regime.toLowerCase().includes('dp')) {
+                            regime = 'Demi-pensionnaire';
+                        } else if (regime.toLowerCase().includes('interne')) {
+                            regime = 'Interne';
+                        } else {
+                            regime = 'Externe';
+                        }
+
+                        let autorisationSortie = sortieIdx !== -1 ? String(row[sortieIdx] || '').trim() : 'Oui';
+                        if (autorisationSortie.toLowerCase().includes('non') || autorisationSortie.toLowerCase().includes('interdit')) {
+                            autorisationSortie = 'Non';
+                        } else {
+                            autorisationSortie = 'Oui';
+                        }
+
+                        const profPrincipal = profIdx !== -1 ? String(row[profIdx] || '').trim() : '';
+                        const badgeRepere = repereIdx !== -1 ? String(row[repereIdx] || '').trim() : '';
+                        const badgeCantine = cantineIdx !== -1 ? String(row[cantineIdx] || '').trim() : '';
+
+                        const existingStudent = students.find(s => 
+                            s.nom.toUpperCase() === nom.toUpperCase() && 
+                            s.prenom.toLowerCase() === prenom.toLowerCase()
+                        );
+
+                        if (existingStudent) {
+                            existingStudent.classe = classe || existingStudent.classe;
+                            existingStudent.regime = regime || existingStudent.regime;
+                            existingStudent.autorisationSortie = autorisationSortie || existingStudent.autorisationSortie;
+                            if (profPrincipal) existingStudent.profPrincipal = profPrincipal;
+                            if (badgeRepere) existingStudent.badgeRepere = badgeRepere;
+                            if (badgeCantine) existingStudent.badgeCantine = badgeCantine;
+                            updatedCount++;
+                        } else {
+                            students.push({
                                 id: generateUUID(),
                                 nom,
                                 prenom,
@@ -1853,41 +1864,25 @@
                                 regime,
                                 autorisationSortie,
                                 profPrincipal,
-                                badgeRepere: '',
-                                badgeCantine: '',
+                                badgeRepere,
+                                badgeCantine,
                                 events: []
                             });
+                            addedCount++;
                         }
                     }
 
-                    if (importedStudents.length > 0) {
-                        students = importedStudents;
-                        saveStorage();
-                        populateClassFilter();
-                        filterStudents();
-                        alert(`${importedStudents.length} élève(s) importé(s) avec succès !`);
-                    } else {
-                        alert("Aucun élève valide trouvé dans le fichier.");
-                    }
+                    saveStorage();
+                    populateClassFilter();
+                    filterStudents();
+                    alert(`Importation des élèves terminée :\n- ${addedCount} élève(s) ajouté(s)\n- ${updatedCount} élève(s) mis à jour`);
+                } catch(err) {
+                    console.error("Erreur lors de l'importation de la liste d'élèves :", err);
+                    alert("Erreur lors de la lecture du fichier d'importation d'élèves.");
                 }
             };
             reader.readAsArrayBuffer(file);
             event.target.value = '';
-        }
-
-        function exportStudentPDF() {
-            if (!selectedStudentId) return;
-            const element = document.getElementById('studentDetailCard');
-            
-            const opt = {
-                margin:       [0.5, 0.5, 0.5, 0.5],
-                filename:     `Fiche_Eleve_${new Date().toISOString().slice(0,10)}.pdf`,
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true },
-                jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
-            };
-
-            html2pdf().set(opt).from(element).save();
         }
     </script>
 </body>
