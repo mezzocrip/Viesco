@@ -15,8 +15,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <!-- QRCode.js (Génération QR) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <!-- jsPDF et html2canvas -->
+    <!-- jsPDF, html2canvas & jsPDF-AutoTable -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <!-- Google Fonts Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -146,9 +147,9 @@
                         </button>
                         <input type="file" id="fileInput" accept=".xlsx, .xls, .csv, .txt" class="hidden" onchange="importDataFile(event)">
 
-                        <button onclick="openExportClassModal()" class="inline-flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-medium px-2.5 py-2 rounded-lg border border-emerald-300 transition">
-                            <i data-lucide="file-output" class="w-4 h-4 text-emerald-600"></i>
-                            <span class="hidden sm:inline">Export Classe</span>
+                        <button onclick="openExportClassModal()" class="inline-flex items-center gap-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-medium px-2.5 py-2 rounded-lg border border-rose-300 transition">
+                            <i data-lucide="file-text" class="w-4 h-4 text-rose-600"></i>
+                            <span class="hidden sm:inline">Export PDF Classe</span>
                         </button>
 
                         <button onclick="exportGlobalCSV()" class="inline-flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium px-2.5 py-2 rounded-lg border border-slate-300 transition" title="Exporter toute la base en CSV">
@@ -346,9 +347,9 @@
                 </div>
                 
                 <div class="flex items-center gap-2">
-                    <button onclick="openExportClassModal()" class="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-3.5 py-2 rounded-lg shadow-sm transition text-sm">
-                        <i data-lucide="file-output" class="w-4 h-4"></i>
-                        <span>Exporter Récapitulatif par Classe</span>
+                    <button onclick="openExportClassModal()" class="inline-flex items-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white font-medium px-3.5 py-2 rounded-lg shadow-sm transition text-sm">
+                        <i data-lucide="file-text" class="w-4 h-4"></i>
+                        <span>Exporter Récapitulatif PDF</span>
                     </button>
 
                     <button onclick="showListPage()" class="inline-flex items-center gap-2 bg-white hover:bg-slate-100 text-slate-700 font-medium px-4 py-2 rounded-lg border border-slate-300 shadow-sm transition text-sm">
@@ -455,46 +456,46 @@
         </div>
     </div>
 
-    <!-- MODALE : Export Excel par Classe -->
+    <!-- MODALE : Export PDF par Classe -->
     <div id="exportClassModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs hidden z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6 space-y-4 border border-slate-200">
             <div class="flex justify-between items-center border-b pb-3 border-slate-100">
                 <div class="flex items-center gap-2">
-                    <i data-lucide="file-spreadsheets" class="w-5 h-5 text-emerald-600"></i>
-                    <h3 class="font-bold text-lg text-slate-800">Exportation Excel par Classe</h3>
+                    <i data-lucide="file-text" class="w-5 h-5 text-rose-600"></i>
+                    <h3 class="font-bold text-lg text-slate-800">Exportation PDF par Classe</h3>
                 </div>
                 <button onclick="closeModal('exportClassModal')" class="text-slate-400 hover:text-slate-600">
                     <i data-lucide="x" class="w-5 h-5"></i>
                 </button>
             </div>
             
-            <form id="exportClassForm" onsubmit="handleExportClassExcel(event)" class="space-y-4">
+            <form id="exportClassForm" onsubmit="handleExportClassPDF(event)" class="space-y-4">
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Sélectionner la classe à exporter</label>
-                    <select id="exportClassSelect" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500">
-                        <option value="ALL">Toutes les classes (1 onglet par classe)</option>
+                    <select id="exportClassSelect" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-rose-500">
+                        <option value="ALL">Toutes les classes (1 page/section par classe)</option>
                     </select>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Contenu de l'exportation</label>
-                    <select id="exportTypeSelect" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500">
-                        <option value="summary">Synthèse globale par élève (Compteurs & Info Badge Cantine)</option>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Contenu du document PDF</label>
+                    <select id="exportTypeSelect" class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-rose-500">
+                        <option value="summary">Synthèse globale par élève (Compteurs & Info Badges)</option>
                         <option value="details">Historique détaillé des événements</option>
                         <option value="both">Les deux (Synthèse + Historique détaillé)</option>
                     </select>
                 </div>
 
-                <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-xs text-emerald-800 flex items-start gap-2">
-                    <i data-lucide="info" class="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5"></i>
-                    <p>Le fichier Excel généré comportera des feuilles structurées avec la liste des élèves et leurs statuts.</p>
+                <div class="bg-rose-50 border border-rose-200 rounded-lg p-3 text-xs text-rose-800 flex items-start gap-2">
+                    <i data-lucide="info" class="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5"></i>
+                    <p>Le document PDF sera généré avec un design soigné, incluant la mise en forme du suivi disciplinaire et des alertes de chaque classe.</p>
                 </div>
 
                 <div class="flex justify-end gap-2 pt-2">
                     <button type="button" onclick="closeModal('exportClassModal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-lg">Annuler</button>
-                    <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded-lg shadow-sm flex items-center gap-1.5">
+                    <button type="submit" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-medium rounded-lg shadow-sm flex items-center gap-1.5">
                         <i data-lucide="download" class="w-4 h-4"></i>
-                        <span>Télécharger Excel (.xlsx)</span>
+                        <span>Télécharger le PDF</span>
                     </button>
                 </div>
             </form>
@@ -795,7 +796,7 @@
             const classes = [...new Set(students.map(s => s.classe))].filter(Boolean).sort();
             
             select.innerHTML = '<option value="">Toutes les classes</option>';
-            exportSelect.innerHTML = '<option value="ALL">Toutes les classes (1 onglet par classe)</option>';
+            exportSelect.innerHTML = '<option value="ALL">Toutes les classes (1 page/section par classe)</option>';
             
             classes.forEach(c => {
                 const opt = document.createElement('option');
@@ -1755,76 +1756,214 @@
         }
 
         // =========================================================
-        // 9. EXPORTATION EXCEL ET CSV
+        // 9. EXPORTATION PDF PAR CLASSE (STYLISÉ) ET CSV
         // =========================================================
-        function handleExportClassExcel(e) {
+        function handleExportClassPDF(e) {
             e.preventDefault();
             const selectedClass = document.getElementById('exportClassSelect').value;
             const exportType = document.getElementById('exportTypeSelect').value;
 
-            const wb = XLSX.utils.book_new();
+            if (!window.jspdf || !window.jspdf.jsPDF) {
+                alert("Erreur: La bibliothèque jsPDF n'a pas pu être chargée.");
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'mm', 'a4');
 
             const classesToExport = selectedClass === 'ALL' 
                 ? [...new Set(students.map(s => s.classe))].filter(Boolean).sort()
                 : [selectedClass];
 
+            if (classesToExport.length === 0) {
+                alert("Aucune classe sélectionnée ou disponible.");
+                return;
+            }
+
+            let isFirstPage = true;
+
             classesToExport.forEach(cls => {
                 const classStudents = students.filter(s => s.classe === cls);
-                
+                if (classStudents.length === 0) return;
+
+                if (!isFirstPage) {
+                    doc.addPage();
+                }
+                isFirstPage = false;
+
+                let currentY = 15;
+
+                // En-tête coloré de classe
+                doc.setFillColor(67, 56, 202); // Indigo 700
+                doc.rect(14, currentY, 182, 22, 'F');
+
+                doc.setTextColor(255, 255, 255);
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(13);
+                doc.text(`RÉCAPITULATIF DISCIPLINAIRE - CLASSE DE ${cls.toUpperCase()}`, 20, currentY + 9);
+
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(8.5);
+                const todayStr = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                doc.text(`Généré le : ${todayStr}  |  Effectif : ${classStudents.length} élève(s)`, 20, currentY + 16);
+
+                currentY += 28;
+
+                // Section 1 : Tableau de Synthèse globale
                 if (exportType === 'summary' || exportType === 'both') {
-                    const summaryData = classStudents.map(s => {
+                    doc.setTextColor(30, 41, 59);
+                    doc.setFont("helvetica", "bold");
+                    doc.setFontSize(10.5);
+                    doc.text("1. Synthèse par élève", 14, currentY);
+                    currentY += 4;
+
+                    const summaryHeaders = [['Nom', 'Prénom', 'Régime', 'Sortie', 'Retards', 'Absences', 'Retenues', 'Obs.', 'Sanctions', 'Badge / Repère']];
+                    const summaryRows = classStudents.map(s => {
                         const retards = (s.events || []).filter(ev => ev.type === 'retard').length;
                         const absences = (s.events || []).filter(ev => ev.type === 'absence').length;
                         const retenues = (s.events || []).filter(ev => ev.type === 'retenue').reduce((sum, ev) => sum + (parseInt(ev.duration) || 1), 0);
                         const obs = (s.events || []).filter(ev => ev.type === 'observation').length;
                         const sanctions = (s.events || []).filter(ev => ev.type === 'sanction').length;
+                        const badges = [s.badgeCantine, s.badgeRepere].filter(Boolean).join(' / ') || '-';
 
-                        return {
-                            "Nom": s.nom,
-                            "Prénom": s.prenom,
-                            "Classe": s.classe,
-                            "Régime": s.regime,
-                            "Autorisation Sortie": s.autorisationSortie,
-                            "N° Badge Cantine": s.badgeCantine || '',
-                            "N° Carte Repère": s.badgeRepere || '',
-                            "Retards": retards,
-                            "Absences": absences,
-                            "Retenues (h)": retenues,
-                            "Observations": obs,
-                            "Sanctions": sanctions
-                        };
+                        return [
+                            (s.nom || '').toUpperCase(),
+                            s.prenom || '',
+                            s.regime || '-',
+                            s.autorisationSortie === 'Non' ? 'NON' : 'OUI',
+                            retards,
+                            absences,
+                            `${retenues}h`,
+                            obs,
+                            sanctions,
+                            badges
+                        ];
                     });
 
-                    const wsSummary = XLSX.utils.json_to_sheet(summaryData);
-                    XLSX.utils.book_append_sheet(wb, wsSummary, `${cls.replace(/[^a-zA-Z0-9]/g, '_')}_Synthèse`);
+                    doc.autoTable({
+                        startY: currentY,
+                        head: summaryHeaders,
+                        body: summaryRows,
+                        theme: 'grid',
+                        headStyles: { fillColor: [67, 56, 202], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7.5, halign: 'center' },
+                        bodyStyles: { fontSize: 7.5, textColor: [30, 41, 59] },
+                        alternateRowStyles: { fillColor: [248, 250, 252] },
+                        columnStyles: {
+                            0: { fontStyle: 'bold', cellWidth: 26 },
+                            1: { cellWidth: 22 },
+                            2: { cellWidth: 22 },
+                            3: { halign: 'center', cellWidth: 14 },
+                            4: { halign: 'center', cellWidth: 14 },
+                            5: { halign: 'center', cellWidth: 14 },
+                            6: { halign: 'center', cellWidth: 14 },
+                            7: { halign: 'center', cellWidth: 12 },
+                            8: { halign: 'center', cellWidth: 14 },
+                            9: { halign: 'center', cellWidth: 30 }
+                        },
+                        margin: { left: 14, right: 14 },
+                        didParseCell: function(data) {
+                            if (data.section === 'body') {
+                                // Alerte visuelle pour interdiction de sortie
+                                if (data.column.index === 3 && data.cell.raw === 'NON') {
+                                    data.cell.styles.textColor = [225, 29, 72];
+                                    data.cell.styles.fontStyle = 'bold';
+                                }
+                                // Alerte visuelle pour présence de sanctions
+                                if (data.column.index === 8 && parseInt(data.cell.raw) > 0) {
+                                    data.cell.styles.textColor = [225, 29, 72];
+                                    data.cell.styles.fontStyle = 'bold';
+                                }
+                            }
+                        }
+                    });
+
+                    currentY = doc.lastAutoTable.finalY + 8;
                 }
 
+                // Section 2 : Historique détaillé des événements
                 if (exportType === 'details' || exportType === 'both') {
-                    const detailsData = [];
+                    const detailsRows = [];
                     classStudents.forEach(s => {
                         (s.events || []).forEach(ev => {
-                            detailsData.push({
-                                "Nom": s.nom,
-                                "Prénom": s.prenom,
-                                "Classe": s.classe,
-                                "Date": ev.date,
-                                "Type": ev.type,
-                                "Type Pronote": ev.pronoteType || '',
-                                "Justifié": ev.justified || '',
-                                "Durée (h)": ev.duration || '',
-                                "Motif": ev.motif || ''
+                            const formattedDate = new Date(ev.date).toLocaleString('fr-FR', {
+                                day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
                             });
+                            
+                            let typeLabel = (ev.type || '').toUpperCase();
+                            if (ev.pronoteType) typeLabel += ` (${ev.pronoteType})`;
+                            
+                            let info = '-';
+                            if (ev.type === 'absence' || ev.type === 'retard') {
+                                info = ev.justified === 'Oui' ? 'Justifié' : 'Non justifié';
+                            } else if (ev.type === 'retenue') {
+                                info = `${ev.duration || 1}h`;
+                            }
+
+                            detailsRows.push([
+                                `${(s.nom || '').toUpperCase()} ${s.prenom || ''}`,
+                                formattedDate,
+                                typeLabel,
+                                info,
+                                ev.motif || '-'
+                            ]);
                         });
                     });
 
-                    if (detailsData.length > 0) {
-                        const wsDetails = XLSX.utils.json_to_sheet(detailsData);
-                        XLSX.utils.book_append_sheet(wb, wsDetails, `${cls.replace(/[^a-zA-Z0-9]/g, '_')}_Détails`);
+                    if (detailsRows.length > 0) {
+                        if (currentY > 230) {
+                            doc.addPage();
+                            currentY = 15;
+                        }
+
+                        doc.setTextColor(30, 41, 59);
+                        doc.setFont("helvetica", "bold");
+                        doc.setFontSize(10.5);
+                        doc.text(exportType === 'both' ? "2. Historique détaillé des événements" : "1. Historique détaillé des événements", 14, currentY);
+                        currentY += 4;
+
+                        doc.autoTable({
+                            startY: currentY,
+                            head: [['Élève', 'Date & Heure', 'Type Événement / Sanction', 'Statut / Durée', 'Motif / Remarque']],
+                            body: detailsRows,
+                            theme: 'grid',
+                            headStyles: { fillColor: [51, 65, 85], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7.5, halign: 'center' },
+                            bodyStyles: { fontSize: 7.5, textColor: [30, 41, 59] },
+                            alternateRowStyles: { fillColor: [248, 250, 252] },
+                            columnStyles: {
+                                0: { fontStyle: 'bold', cellWidth: 36 },
+                                1: { cellWidth: 32, halign: 'center' },
+                                2: { cellWidth: 38 },
+                                3: { cellWidth: 24, halign: 'center' },
+                                4: { cellWidth: 52 }
+                            },
+                            margin: { left: 14, right: 14 }
+                        });
+                    } else if (exportType === 'details') {
+                        doc.setFont("helvetica", "italic");
+                        doc.setFontSize(8.5);
+                        doc.setTextColor(100);
+                        doc.text("Aucun événement enregistré pour cette classe.", 14, currentY + 5);
                     }
                 }
             });
 
-            XLSX.writeFile(wb, `Export_VieScolaire_${selectedClass}_${new Date().toISOString().slice(0,10)}.xlsx`);
+            // Pied de page et numérotation
+            const totalPages = doc.internal.getNumberOfPages();
+            for (let i = 1; i <= totalPages; i++) {
+                doc.setPage(i);
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(7.5);
+                doc.setTextColor(148, 163, 184);
+                
+                doc.setDrawColor(226, 232, 240);
+                doc.line(14, 283, 196, 283);
+
+                doc.text("VieScolaire Pro - Document Officiel de Suivi Disciplinaire", 14, 288);
+                doc.text(`Page ${i} / ${totalPages}`, 196, 288, { align: 'right' });
+            }
+
+            const fileName = `Recapitulatif_Classe_${selectedClass}_${new Date().toISOString().slice(0, 10)}.pdf`;
+            doc.save(fileName);
             closeModal('exportClassModal');
         }
 
@@ -1851,14 +1990,6 @@
             if (!selectedStudentId) return;
             const element = document.getElementById('studentDetailCard');
             
-            const opt = {
-                margin: 0.5,
-                filename: `Fiche_Eleve_${new Date().toISOString().slice(0,10)}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2 },
-                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-            };
-
             const { jsPDF } = window.jspdf;
             html2canvas(element).then(canvas => {
                 const imgData = canvas.toDataURL('image/png');
