@@ -307,79 +307,73 @@
                     </div>
                 </div>
 
-                <!-- COMPTEURS ET SYNTHÈSE MODIFIÉS -->
+                <!-- COMPTEURS ET SYNTHÈSE (SEULEMENT COMPTEURS, SANS BOUTONS D'AJOUT ET SANS OUBLI DE CARNET) -->
                 <div class="p-4 sm:p-6 border-b border-slate-200 bg-slate-50/50">
                     <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Compteurs & Synthèse</h3>
-                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2.5 sm:gap-3">
-                        <div class="bg-white p-3 rounded-xl border border-slate-200 text-center shadow-2xs">
+                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3">
+                        <div class="bg-white p-3.5 rounded-xl border border-slate-200 text-center shadow-2xs">
                             <div class="text-xs text-slate-500 font-semibold">Retards</div>
                             <div class="text-xl sm:text-2xl font-extrabold text-amber-600 my-0.5" id="countRetards">0</div>
-                            <button onclick="openAddEventModal('retard')" class="no-print mt-1 text-[11px] text-amber-700 bg-amber-50 active:bg-amber-100 px-2 py-1 rounded-lg w-full font-semibold transition flex items-center justify-center gap-1">
-                                <i data-lucide="plus" class="w-3 h-3"></i> Ajouter
-                            </button>
                         </div>
 
-                        <div class="bg-white p-3 rounded-xl border border-slate-200 text-center shadow-2xs">
+                        <div class="bg-white p-3.5 rounded-xl border border-slate-200 text-center shadow-2xs">
                             <div class="text-xs text-slate-500 font-semibold">Absences</div>
                             <div class="text-xl sm:text-2xl font-extrabold text-rose-600 my-0.5" id="countAbsences">0</div>
-                            <button onclick="openAddEventModal('absence')" class="no-print mt-1 text-[11px] text-rose-700 bg-rose-50 active:bg-rose-100 px-2 py-1 rounded-lg w-full font-semibold transition flex items-center justify-center gap-1">
-                                <i data-lucide="plus" class="w-3 h-3"></i> Ajouter
-                            </button>
                         </div>
 
-                        <div class="bg-white p-3 rounded-xl border border-slate-200 text-center shadow-2xs">
+                        <div class="bg-white p-3.5 rounded-xl border border-slate-200 text-center shadow-2xs">
                             <div class="text-xs text-slate-500 font-semibold">Heures Retenue</div>
                             <div class="text-xl sm:text-2xl font-extrabold text-purple-600 my-0.5" id="countRetenues">0 h</div>
-                            <button onclick="openAddEventModal('retenue')" class="no-print mt-1 text-[11px] text-purple-700 bg-purple-50 active:bg-purple-100 px-2 py-1 rounded-lg w-full font-semibold transition flex items-center justify-center gap-1">
-                                <i data-lucide="plus" class="w-3 h-3"></i> Ajouter
-                            </button>
                         </div>
 
-                        <!-- EMPLOI DU TEMPS BLOQUÉ -->
-                        <div class="bg-white p-3 rounded-xl border border-slate-200 text-center shadow-2xs">
+                        <div class="bg-white p-3.5 rounded-xl border border-slate-200 text-center shadow-2xs">
                             <div class="text-xs text-slate-500 font-semibold">Emploi du temps bloqué</div>
                             <div class="text-xl sm:text-2xl font-extrabold text-amber-700 my-0.5" id="countEmploiBloque">0</div>
-                            <button onclick="openAddEventModal('emploi_bloque')" class="no-print mt-1 text-[11px] text-amber-800 bg-amber-50 active:bg-amber-100 px-2 py-1 rounded-lg w-full font-semibold transition flex items-center justify-center gap-1">
-                                <i data-lucide="plus" class="w-3 h-3"></i> Ajouter
-                            </button>
                         </div>
 
-                        <!-- EXCLUSION DE COURS -->
-                        <div class="bg-white p-3 rounded-xl border border-slate-200 text-center shadow-2xs">
+                        <div class="bg-white p-3.5 rounded-xl border border-slate-200 text-center shadow-2xs">
                             <div class="text-xs text-slate-500 font-semibold">Exclusion de cours</div>
                             <div class="text-xl sm:text-2xl font-extrabold text-rose-700 my-0.5" id="countExclusion">0</div>
-                            <button onclick="openAddEventModal('exclusion')" class="no-print mt-1 text-[11px] text-rose-800 bg-rose-50 active:bg-rose-100 px-2 py-1 rounded-lg w-full font-semibold transition flex items-center justify-center gap-1">
-                                <i data-lucide="plus" class="w-3 h-3"></i> Ajouter
-                            </button>
                         </div>
 
-                        <div class="bg-white p-3 rounded-xl border border-slate-200 text-center shadow-2xs">
+                        <div class="bg-white p-3.5 rounded-xl border border-slate-200 text-center shadow-2xs">
                             <div class="text-xs text-slate-500 font-semibold">Sanctions</div>
                             <div class="text-xl sm:text-2xl font-extrabold text-red-700 my-0.5" id="countSanctions">0</div>
-                            <button onclick="openAddEventModal('sanction')" class="no-print mt-1 text-[11px] text-red-700 bg-red-50 active:bg-red-100 px-2 py-1 rounded-lg w-full font-semibold transition flex items-center justify-center gap-1">
-                                <i data-lucide="plus" class="w-3 h-3"></i> Ajouter
-                            </button>
-                        </div>
-
-                        <div class="bg-white p-3 rounded-xl border border-slate-200 text-center shadow-2xs">
-                            <div class="text-xs text-slate-500 font-semibold">Oublis Carnet</div>
-                            <div class="text-xl sm:text-2xl font-extrabold text-slate-700 my-0.5" id="countCarnet">0</div>
-                            <button onclick="openAddEventModal('carnet')" class="no-print mt-1 text-[11px] text-slate-700 bg-slate-100 active:bg-slate-200 px-2 py-1 rounded-lg w-full font-semibold transition flex items-center justify-center gap-1">
-                                <i data-lucide="plus" class="w-3 h-3"></i> Ajouter
-                            </button>
                         </div>
                     </div>
                 </div>
 
                 <div class="p-4 sm:p-6">
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-4">
                         <h3 class="text-sm font-semibold text-slate-800 flex items-center gap-2">
                             <i data-lucide="history" class="w-4 h-4 text-indigo-600"></i>
                             <span>Historique Vie Scolaire & PRONOTE</span>
                         </h3>
-                        <button id="btnFilterUnjustified" onclick="toggleUnjustifiedFilter()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-rose-50 hover:text-rose-700 border border-slate-200 transition no-print">
+                        <button id="btnFilterUnjustified" onclick="toggleUnjustifiedFilter()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-rose-50 hover:text-rose-700 border border-slate-200 transition no-print shrink-0">
                             <i data-lucide="filter" class="w-3.5 h-3.5"></i>
                             <span>Absences injustifiées seulement</span>
+                        </button>
+                    </div>
+
+                    <!-- ONGLETS DE FILTRAGE HISTORIQUE -->
+                    <div class="mb-4 bg-slate-100/80 p-1.5 rounded-2xl flex items-center gap-1 overflow-x-auto no-scrollbar border border-slate-200/60 no-print">
+                        <button onclick="setHistoryTab('all')" id="hist-tab-all" class="hist-tab shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition bg-indigo-600 text-white shadow-2xs">
+                            Tous
+                        </button>
+                        <button onclick="setHistoryTab('retard')" id="hist-tab-retard" class="hist-tab shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition text-slate-600 hover:bg-slate-200/70">
+                            Retards
+                        </button>
+                        <button onclick="setHistoryTab('retenue')" id="hist-tab-retenue" class="hist-tab shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition text-slate-600 hover:bg-slate-200/70">
+                            Heures de colle
+                        </button>
+                        <button onclick="setHistoryTab('emploi_bloque')" id="hist-tab-emploi_bloque" class="hist-tab shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition text-slate-600 hover:bg-slate-200/70">
+                            Emploi du temps bloqué
+                        </button>
+                        <button onclick="setHistoryTab('exclusion')" id="hist-tab-exclusion" class="hist-tab shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition text-slate-600 hover:bg-slate-200/70">
+                            Exclusions de cours
+                        </button>
+                        <button onclick="setHistoryTab('sanction')" id="hist-tab-sanction" class="hist-tab shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition text-slate-600 hover:bg-slate-200/70">
+                            Sanctions
                         </button>
                     </div>
 
@@ -429,7 +423,7 @@
                 </div>
             </div>
 
-            <!-- ONGLETS RÉCAPITULATIF MODIFIÉS -->
+            <!-- ONGLETS RÉCAPITULATIF -->
             <div class="border-b border-slate-200 bg-white rounded-2xl shadow-2xs p-1.5 flex items-center gap-1 overflow-x-auto no-scrollbar">
                 <button onclick="switchRecapTab('retard')" id="tab-retard" class="recap-tab shrink-0 px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition bg-indigo-600 text-white shadow-2xs">
                     <i data-lucide="clock" class="w-4 h-4"></i>
@@ -735,6 +729,7 @@
             </div>
         </div>
     </div>
+
     <!-- JAVASCRIPT APPLICATION -->
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -748,6 +743,7 @@
         let selectedStudentId = null;
         let currentQuickFilter = 'all';
         let currentRecapCategory = 'retard';
+        let currentHistoryFilter = 'all';
         let pendingToggleAction = null;
         let qrCodeObj = null;
         let showOnlyUnjustifiedAbsences = false;
@@ -1097,9 +1093,31 @@
             const btn = document.getElementById('btnFilterUnjustified');
             if (!btn) return;
             if (showOnlyUnjustifiedAbsences) {
-                btn.className = "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-rose-600 text-white border border-rose-600 shadow-2xs transition no-print";
+                btn.className = "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-rose-600 text-white border border-rose-600 shadow-2xs transition no-print shrink-0";
             } else {
-                btn.className = "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-rose-50 hover:text-rose-700 border border-slate-200 transition no-print";
+                btn.className = "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-rose-50 hover:text-rose-700 border border-slate-200 transition no-print shrink-0";
+            }
+        }
+
+        // =========================================================
+        // GESTION DES ONGLETS DE FILTRAGE DANS L'HISTORIQUE
+        // =========================================================
+        function setHistoryTab(cat) {
+            currentHistoryFilter = cat;
+            
+            const tabs = document.querySelectorAll('.hist-tab');
+            tabs.forEach(t => {
+                t.className = "hist-tab shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition text-slate-600 hover:bg-slate-200/70";
+            });
+
+            const activeTab = document.getElementById(`hist-tab-${cat}`);
+            if (activeTab) {
+                activeTab.className = "hist-tab shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition bg-indigo-600 text-white shadow-2xs";
+            }
+
+            if (selectedStudentId) {
+                const student = students.find(s => s.id === selectedStudentId);
+                if (student) renderHistoryTable(student);
             }
         }
 
@@ -1113,6 +1131,29 @@
                 const dateB = extractDateFromText(b.motif) || b.date;
                 return new Date(dateB) - new Date(dateA);
             });
+
+            // FILTRAGE SELON L'ONGLET D'HISTORIQUE SÉLECTIONNÉ
+            if (currentHistoryFilter !== 'all') {
+                events = events.filter(e => {
+                    const motifStatut = getStatutDetailFromMotif(e.motif);
+                    if (currentHistoryFilter === 'retard') {
+                        return e.type === 'retard';
+                    }
+                    if (currentHistoryFilter === 'retenue') {
+                        return e.type === 'retenue' || motifStatut === 'Retenue';
+                    }
+                    if (currentHistoryFilter === 'emploi_bloque') {
+                        return e.type === 'emploi_bloque' || motifStatut === 'emploi du temps bloqué';
+                    }
+                    if (currentHistoryFilter === 'exclusion') {
+                        return e.type === 'exclusion' || motifStatut === 'Exclusion de cours';
+                    }
+                    if (currentHistoryFilter === 'sanction') {
+                        return e.type === 'sanction';
+                    }
+                    return true;
+                });
+            }
 
             if (showOnlyUnjustifiedAbsences) {
                 events = events.filter(e => e.type === 'absence' && e.justified !== 'Oui' && !/\boui\b/i.test(e.motif || ''));
@@ -1145,7 +1186,6 @@
                 const motifStatut = getStatutDetailFromMotif(ev.motif);
                 let detailText = "--";
 
-                // VÉRIFICATION DE LA MENTION "OUI" DANS LE MOTIF / COMMENTAIRES
                 const hasOuiInMotif = /\boui\b/i.test(ev.motif || '');
                 const isJustifiedEvent = ev.justified === 'Oui' || hasOuiInMotif;
 
@@ -1158,7 +1198,6 @@
 
                     detailText = `<span class="inline-block text-xs px-2.5 py-0.5 rounded-full border ${badgeColor}">${sanitize(motifStatut)}</span>`;
                 } else if (ev.type === 'absence' || ev.type === 'retard') {
-                    // AFFICHAGE DU BADGE VERT SI JUSTIFIÉ OU MENTION "OUI"
                     detailText = `
                         <button onclick="toggleAbsenceJustified('${safeEvId}')" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border transition ${isJustifiedEvent ? 'bg-emerald-50 text-emerald-700 border-emerald-300' : 'bg-rose-50 text-rose-700 border-rose-300'}">
                             <span class="w-1.5 h-1.5 rounded-full ${isJustifiedEvent ? 'bg-emerald-500' : 'bg-rose-500'}"></span>
@@ -1385,7 +1424,9 @@
         function openStudentDetail(id) {
             selectedStudentId = id;
             showOnlyUnjustifiedAbsences = false;
+            currentHistoryFilter = 'all';
             updateUnjustifiedBtnStyle();
+            setHistoryTab('all');
 
             const student = students.find(s => s.id === id);
             if (!student) return;
@@ -1472,7 +1513,6 @@
             const emploiBloque = events.filter(e => e.type === 'emploi_bloque' || getStatutDetailFromMotif(e.motif) === 'emploi du temps bloqué').length;
             const exclusions = events.filter(e => e.type === 'exclusion' || getStatutDetailFromMotif(e.motif) === 'Exclusion de cours').length;
             const sanctions = events.filter(e => e.type === 'sanction').length;
-            const carnet = events.filter(e => e.type === 'carnet').length;
 
             document.getElementById('countRetards').textContent = retards;
             document.getElementById('countAbsences').textContent = absences;
@@ -1480,7 +1520,6 @@
             document.getElementById('countEmploiBloque').textContent = emploiBloque;
             document.getElementById('countExclusion').textContent = exclusions;
             document.getElementById('countSanctions').textContent = sanctions;
-            document.getElementById('countCarnet').textContent = carnet;
         }
 
         function openAddEventModal(type) {
@@ -1769,7 +1808,6 @@
 
                         const eventDate = extractDateFromText(line) || new Date().toISOString().slice(0, 16);
 
-                        // ANALYSE DU MOT "OUI" OU "JUSTIFIÉ" DANS LA LIGNE IMPORTÉE
                         const isJustified = (lowerLine.includes('justifié') && !lowerLine.includes('non justifié')) || /\boui\b/i.test(lowerLine);
 
                         if (!student.events) student.events = [];
@@ -1990,82 +2028,21 @@
 
             doc.setFontSize(10);
             doc.text(`Classe : ${student.classe || '-'} | Régime : ${student.regime || '-'} | Prof. : ${student.profPrincipal || '-'}`, 14, 28);
-            doc.text(`Sortie : ${student.autorisationSortie === 'Oui' ? 'Autorisé' : 'Interdit'}`, 14, 34);
-
-            const events = student.events || [];
-            const tableData = events.map(e => {
-                const isJust = e.justified === 'Oui' || /\boui\b/i.test(e.motif || '');
-                return [
-                    e.date || '-',
-                    e.type || '-',
-                    isJust ? 'Justifié' : (e.duration ? `${e.duration}h` : 'Non Justifié'),
-                    e.motif || '-'
-                ];
-            });
+            doc.text(`Sortie : ${student.autorisationSortie || '-'}`, 14, 34);
 
             doc.autoTable({
-                startY: 42,
-                head: [['Date', 'Type', 'Statut / Durée', 'Motif / Commentaire']],
-                body: tableData,
+                startY: 40,
+                head: [['Date', 'Type', 'Motif / Détails']],
+                body: (student.events || []).map(e => [
+                    extractDateFromText(e.motif) || e.date,
+                    e.type.toUpperCase(),
+                    e.motif || ''
+                ])
             });
 
             doc.save(`fiche_${student.nom}_${student.prenom}.pdf`);
         }
-
-        function exportClassPDF(selectedClass, exportType) {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            
-            const list = selectedClass === 'ALL' ? students : students.filter(s => s.classe === selectedClass);
-
-            doc.setFontSize(16);
-            doc.text(`Rapport Vie Scolaire - Classe : ${selectedClass}`, 14, 18);
-
-            let currentY = 28;
-
-            list.forEach((student) => {
-                if (currentY > 260) {
-                    doc.addPage();
-                    currentY = 20;
-                }
-
-                doc.setFontSize(11);
-                doc.setFont(undefined, 'bold');
-                doc.text(`${student.nom.toUpperCase()} ${student.prenom} (${student.classe})`, 14, currentY);
-                doc.setFont(undefined, 'normal');
-                
-                const events = student.events || [];
-                const rows = events.map(e => {
-                    const isJust = e.justified === 'Oui' || /\boui\b/i.test(e.motif || '');
-                    return [
-                        e.date || '-',
-                        e.type || '-',
-                        isJust ? 'Justifié' : 'Non Justifié',
-                        e.motif || '-'
-                    ];
-                });
-
-                if (rows.length > 0) {
-                    doc.autoTable({
-                        startY: currentY + 4,
-                        head: [['Date', 'Type', 'Statut', 'Motif']],
-                        body: rows,
-                        theme: 'grid',
-                        styles: { fontSize: 8 },
-                        margin: { left: 14, right: 14 }
-                    });
-                    currentY = doc.lastAutoTable.finalY + 10;
-                } else {
-                    doc.setFontSize(9);
-                    doc.text("Aucun événement enregistré.", 14, currentY + 6);
-                    currentY += 14;
-                }
-            });
-
-            doc.save(`rapport_viescolaire_${selectedClass}.pdf`);
-        }
     </script>
 </body>
 </html>
-
     
