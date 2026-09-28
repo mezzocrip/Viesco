@@ -116,9 +116,6 @@
  <button onclick="openAddStudentModal()" class="p-2 bg-emerald-500 active:bg-emerald-600 text-white rounded-xl shadow-xs">
  <i data-lucide="user-plus" class="w-5 h-5"></i>
  </button>
- <button onclick="exportJSON()" class="p-2 bg-indigo-800 active:bg-indigo-700 text-indigo-100 rounded-xl border border-indigo-700">
- <i data-lucide="share" class="w-5 h-5"></i>
- </button>
  </div>
  </div>
  </header>
@@ -484,12 +481,12 @@
  </button>
  </div>
 
- <!-- FILTRE PAR CLASSE & BOUTON DE TRI POUR LE MODE CLASSE -->
- <div id="recapClassFilterContainer" class="hidden bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+ <!-- FILTRE ET BOUTONS DE TRI GLOBAL -->
+ <div id="recapClassFilterContainer" class="bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
  <div class="flex items-center gap-2">
  <i data-lucide="filter" class="w-4 h-4 text-indigo-600"></i>
  <span class="text-xs font-semibold text-slate-700">Sélectionner la classe :</span>
- <select id="recapClassSelect" onchange="renderRecapClassCards()" class="bg-slate-50 border border-slate-200 text-slate-800 text-xs sm:text-sm rounded-xl px-3 py-1.5 outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+ <select id="recapClassSelect" onchange="renderCurrentRecapView()" class="bg-slate-50 border border-slate-200 text-slate-800 text-xs sm:text-sm rounded-xl px-3 py-1.5 outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
  <option value="ALL">Toutes les classes</option>
  </select>
  </div>
@@ -794,6 +791,7 @@
  let html5QrCodeScanner = null;
  let showOnlyUnjustifiedAbsences = false;
  let pdfChartInstance = null;
+ let lastScrollPosition = 0;
 
  const demoData = [
  {
@@ -1317,24 +1315,29 @@ if (ev.type === 'retard') { badgeClass = "bg-amber-100 text-amber-800"; typeLabe
  lucide.createIcons();
  }
 
+ function renderCurrentRecapView() {
+ if (currentRecapViewMode === 'category') {
+ renderRecapCategoryCards(currentRecapCategory);
+ } else {
+ renderRecapClassCards();
+ }
+ }
+
  function setRecapViewMode(mode) {
  currentRecapViewMode = mode;
  const btnCat = document.getElementById('btnRecapViewCategory');
  const btnClass = document.getElementById('btnRecapViewClass');
  const catTabs = document.getElementById('recapCategoryTabs');
- const classFilterContainer = document.getElementById('recapClassFilterContainer');
 
  if (mode === 'category') {
  btnCat.className = "px-3 py-1.5 rounded-lg bg-white text-indigo-900 shadow-2xs transition";
  btnClass.className = "px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition";
  catTabs.classList.remove('hidden');
- classFilterContainer.classList.add('hidden');
  renderRecapCategoryCards(currentRecapCategory);
  } else {
  btnClass.className = "px-3 py-1.5 rounded-lg bg-white text-indigo-900 shadow-2xs transition";
  btnCat.className = "px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition";
  catTabs.classList.add('hidden');
- classFilterContainer.classList.remove('hidden');
  renderRecapClassCards();
  }
  }
@@ -1347,12 +1350,13 @@ if (ev.type === 'retard') { badgeClass = "bg-amber-100 text-amber-800"; typeLabe
  ? "Trier : Du + grand au + petit" 
  : "Trier : Du + petit au + grand";
  }
- renderRecapClassCards();
+ renderCurrentRecapView();
  }
 
  function renderRecapCategoryCards(cat) {
  const container = document.getElementById('recapCategoryList');
  const emptyMsg = document.getElementById('recapEmptyMessage');
+ const selectedClass = document.getElementById('recapClassSelect').value;
  container.innerHTML = '';
 
  const matchesCat = (e) => {
@@ -1364,7 +1368,17 @@ if (ev.type === 'retard') { badgeClass = "bg-amber-100 text-amber-800"; typeLabe
  return false;
  };
 
- const filteredStudents = students.filter(s => (s.events || []).some(matchesCat));
+ let filteredStudents = students.filter(s => {
+ const matchesClass = selectedClass === 'ALL' || s.classe === selectedClass;
+ return matchesClass && (s.events || []).some(matchesCat);
+ });
+
+ // Tri des élèves selon le nombre d'événements dans la catégorie (du plus grand au plus petit ou vice-versa)
+ filteredStudents.sort((a, b) => {
+ const countA = (a.events || []).filter(matchesCat).length;
+ const countB = (b.events || []).filter(matchesCat).length;
+ return recapClassSortOrder === 'desc' ? countB - countA : countA - countB;
+ });
 
  if (filteredStudents.length === 0) {
  emptyMsg.classList.remove('hidden');
@@ -1423,6 +1437,8 @@ if (e.type === 'retenue' || getStatutDetailFromMotif(e.motif) === 'Retenue') {
  `;
  container.appendChild(card);
  });
+
+ lucide.createIcons();
  }
 
  function renderRecapClassCards() {
@@ -1626,10 +1642,12 @@ pendingToggleAction = () => {
  document.getElementById('pageList').classList.remove('hidden');
  selectedStudentId = null;
  filterStudents();
+ window.scrollTo({ top: lastScrollPosition, behavior: 'instant' });
  }
 
  function openStudentDetail(id) {
  stopBadgeScanner();
+ lastScrollPosition = window.scrollY || document.documentElement.scrollTop || 0;
  selectedStudentId = id;
  showOnlyUnjustifiedAbsences = false;
  currentHistoryFilter = 'all';
@@ -1683,6 +1701,8 @@ qrBox.classList.remove('hidden');
  document.getElementById('pageList').classList.add('hidden');
  document.getElementById('pageRecap').classList.add('hidden');
  document.getElementById('pageDetail').classList.remove('hidden');
+
+ window.scrollTo(0, 0);
 
  lucide.createIcons();
  }
