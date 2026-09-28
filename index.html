@@ -17,6 +17,8 @@
  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
  <!-- Html5-QRCode (Scanner) -->
  <script src="https://unpkg.com/html5-qrcode"></script>
+ <!-- Chart.js pour la génération des graphiques -->
+ <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
  <!-- jsPDF, html2canvas & jsPDF-AutoTable -->
  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
@@ -422,6 +424,15 @@
  </div>
  
 <div class="flex items-center gap-2 w-full sm:w-auto">
+ <div class="bg-slate-200 p-1 rounded-xl flex items-center gap-1 text-xs font-semibold">
+ <button id="btnRecapViewCategory" onclick="setRecapViewMode('category')" class="px-3 py-1.5 rounded-lg bg-white text-indigo-900 shadow-2xs transition">
+ Par catégorie
+ </button>
+ <button id="btnRecapViewClass" onclick="setRecapViewMode('class')" class="px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition">
+ Fiches par classe
+ </button>
+ </div>
+
  <button onclick="openExportClassModal()" class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white font-semibold px-3.5 py-2 rounded-xl shadow-2xs transition text-xs sm:text-sm">
  <i data-lucide="file-text" class="w-4 h-4"></i>
  <span>Export PDF</span>
@@ -434,8 +445,8 @@
  </div>
  </div>
 
- <!-- ONGLETS RÉCAPITULATIF -->
- <div class="border-b border-slate-200 bg-white rounded-2xl shadow-2xs p-1.5 flex items-center gap-1 overflow-x-auto no-scrollbar">
+ <!-- ONGLETS RÉCAPITULATIF PAR CATÉGORIE -->
+ <div id="recapCategoryTabs" class="border-b border-slate-200 bg-white rounded-2xl shadow-2xs p-1.5 flex items-center gap-1 overflow-x-auto no-scrollbar">
  <button onclick="switchRecapTab('retard')" id="tab-retard" class="recap-tab shrink-0 px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition bg-indigo-600 text-white shadow-2xs">
  <i data-lucide="clock" class="w-4 h-4"></i>
  <span>Retards</span>
@@ -473,12 +484,28 @@
  </button>
  </div>
 
+ <!-- FILTRE PAR CLASSE & BOUTON DE TRI POUR LE MODE CLASSE -->
+ <div id="recapClassFilterContainer" class="hidden bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+ <div class="flex items-center gap-2">
+ <i data-lucide="filter" class="w-4 h-4 text-indigo-600"></i>
+ <span class="text-xs font-semibold text-slate-700">Sélectionner la classe :</span>
+ <select id="recapClassSelect" onchange="renderRecapClassCards()" class="bg-slate-50 border border-slate-200 text-slate-800 text-xs sm:text-sm rounded-xl px-3 py-1.5 outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+ <option value="ALL">Toutes les classes</option>
+ </select>
+ </div>
+
+ <button id="btnRecapSort" onclick="toggleRecapClassSort()" class="inline-flex items-center justify-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 active:bg-indigo-200 text-indigo-900 border border-indigo-200/80 px-3 py-1.5 rounded-xl text-xs font-semibold transition shadow-2xs">
+ <i data-lucide="arrow-down-narrow-wide" class="w-4 h-4 text-indigo-600"></i>
+ <span id="recapSortLabel">Trier : Du + grand au + petit</span>
+ </button>
+ </div>
+
  <div id="recapCategoryList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4"></div>
 
  <div id="recapEmptyMessage" class="hidden text-center py-12 bg-white rounded-2xl border border-dashed border-slate-300 p-6">
  <i data-lucide="check-circle-2" class="w-12 h-12 text-emerald-400 mx-auto mb-3"></i>
  <h3 class="text-base font-semibold text-slate-700">Aucun élève concerné</h3>
- <p class="text-xs text-slate-500 mt-1">Aucun élève n'a enregistré d'événement dans cette catégorie.</p>
+ <p class="text-xs text-slate-500 mt-1">Aucun élève n'a enregistré d'événement dans cette sélection.</p>
  </div>
  </section>
 
@@ -487,6 +514,11 @@
  </footer>
 
  </main>
+
+ <!-- CANVAS HORS-ÉCRAN POUR GÉNÉRATION DU GRAPHIQUE PDF -->
+ <div style="position: absolute; left: -9999px; top: -9999px;">
+    <canvas id="pdfChartCanvas" width="800" height="400"></canvas>
+ </div>
 
  <!-- MODALE : AVERTISSEMENT CONFIRMATION IMPORT PRONOTE -->
  <div id="confirmImportPronoteModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs hidden z-50 flex items-center justify-center p-4">
@@ -754,11 +786,14 @@
  let selectedStudentId = null;
  let currentQuickFilter = 'all';
  let currentRecapCategory = 'retard';
+ let currentRecapViewMode = 'category'; // 'category' ou 'class'
+ let recapClassSortOrder = 'desc'; // 'desc' (+ grand au + petit) ou 'asc' (+ petit au + grand)
  let currentHistoryFilter = 'all';
  let pendingToggleAction = null;
  let qrCodeObj = null;
  let html5QrCodeScanner = null;
  let showOnlyUnjustifiedAbsences = false;
+ let pdfChartInstance = null;
 
  const demoData = [
  {
@@ -839,23 +874,14 @@
  return null;
  }
 
- // Extraire la durée d'une retenue à partir du commentaire (format 00h00, 00h, 0h00, etc.)
  function getRetenueHours(ev) {
  if (!ev) return 1;
- 
-// Si une durée explicite est déjà enregistrée sous ev.duration
  if (ev.duration !== undefined && ev.duration !== null && !isNaN(parseFloat(ev.duration)) && parseFloat(ev.duration) > 0) {
  return parseFloat(ev.duration);
  }
- 
-// Analyse du champ motif / commentaire
  if (ev.motif) {
  let text = String(ev.motif);
- 
-// Retirer la date/heure au début du motif pour ne pas confondre avec l'heure de début (ex: "15/03/2026 17:00" ou "15/03/2026 17h00")
  text = text.replace(/^\s*\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}(?:\s*(?:à|a)?\s*\d{1,2}[:h]\d{2})?/i, '');
- 
-// Recherche d'un motif de durée au format 00h00 ou 00h (ex: 02h00, 01h30, 2h00, 01h)
  const match = text.match(/\b(\d{1,2})h(\d{2})?\b/i);
  if (match) {
  const h = parseInt(match[1], 10);
@@ -866,8 +892,7 @@
  }
  }
  }
- 
-return 1;
+ return 1;
  }
 
  function generateUUID() {
@@ -980,10 +1005,12 @@ return 1;
  function populateClassFilter() {
  const select = document.getElementById('classFilter');
  const exportSelect = document.getElementById('exportClassSelect');
+ const recapSelect = document.getElementById('recapClassSelect');
  const classes = [...new Set(students.map(s => s.classe))].filter(Boolean).sort();
  
 select.innerHTML = '<option value="">Toutes les classes</option>';
  exportSelect.innerHTML = '<option value="ALL">Toutes les classes</option>';
+ if (recapSelect) recapSelect.innerHTML = '<option value="ALL">Toutes les classes</option>';
  
 classes.forEach(c => {
  const opt = document.createElement('option');
@@ -995,6 +1022,13 @@ classes.forEach(c => {
  opt2.value = c;
  opt2.textContent = c;
  exportSelect.appendChild(opt2);
+
+ if (recapSelect) {
+ const opt3 = document.createElement('option');
+ opt3.value = c;
+ opt3.textContent = c;
+ recapSelect.appendChild(opt3);
+ }
  });
  }
 
@@ -1283,6 +1317,39 @@ if (ev.type === 'retard') { badgeClass = "bg-amber-100 text-amber-800"; typeLabe
  lucide.createIcons();
  }
 
+ function setRecapViewMode(mode) {
+ currentRecapViewMode = mode;
+ const btnCat = document.getElementById('btnRecapViewCategory');
+ const btnClass = document.getElementById('btnRecapViewClass');
+ const catTabs = document.getElementById('recapCategoryTabs');
+ const classFilterContainer = document.getElementById('recapClassFilterContainer');
+
+ if (mode === 'category') {
+ btnCat.className = "px-3 py-1.5 rounded-lg bg-white text-indigo-900 shadow-2xs transition";
+ btnClass.className = "px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition";
+ catTabs.classList.remove('hidden');
+ classFilterContainer.classList.add('hidden');
+ renderRecapCategoryCards(currentRecapCategory);
+ } else {
+ btnClass.className = "px-3 py-1.5 rounded-lg bg-white text-indigo-900 shadow-2xs transition";
+ btnCat.className = "px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 transition";
+ catTabs.classList.add('hidden');
+ classFilterContainer.classList.remove('hidden');
+ renderRecapClassCards();
+ }
+ }
+
+ function toggleRecapClassSort() {
+ recapClassSortOrder = recapClassSortOrder === 'desc' ? 'asc' : 'desc';
+ const label = document.getElementById('recapSortLabel');
+ if (label) {
+ label.textContent = recapClassSortOrder === 'desc' 
+ ? "Trier : Du + grand au + petit" 
+ : "Trier : Du + petit au + grand";
+ }
+ renderRecapClassCards();
+ }
+
  function renderRecapCategoryCards(cat) {
  const container = document.getElementById('recapCategoryList');
  const emptyMsg = document.getElementById('recapEmptyMessage');
@@ -1356,6 +1423,98 @@ if (e.type === 'retenue' || getStatutDetailFromMotif(e.motif) === 'Retenue') {
  `;
  container.appendChild(card);
  });
+ }
+
+ function renderRecapClassCards() {
+ const container = document.getElementById('recapCategoryList');
+ const emptyMsg = document.getElementById('recapEmptyMessage');
+ const selectedClass = document.getElementById('recapClassSelect').value;
+ container.innerHTML = '';
+
+ let filteredStudents = students.filter(s => {
+ const matchesClass = selectedClass === 'ALL' || s.classe === selectedClass;
+ return matchesClass && (s.events || []).length > 0;
+ });
+
+ // Tri du nombre d'événements du plus grand au plus petit (ou inversement)
+ filteredStudents.sort((a, b) => {
+ const countA = (a.events || []).length;
+ const countB = (b.events || []).length;
+ return recapClassSortOrder === 'desc' ? countB - countA : countA - countB;
+ });
+
+ if (filteredStudents.length === 0) {
+ emptyMsg.classList.remove('hidden');
+ return;
+ } else {
+ emptyMsg.classList.add('hidden');
+ }
+
+ filteredStudents.forEach(student => {
+ const events = student.events || [];
+ const retards = events.filter(e => e.type === 'retard').length;
+ const absences = events.filter(e => e.type === 'absence').length;
+ const retenues = events.filter(e => e.type === 'retenue' || getStatutDetailFromMotif(e.motif) === 'Retenue').reduce((sum, e) => sum + getRetenueHours(e), 0);
+ const emploiBloque = events.filter(e => e.type === 'emploi_bloque' || getStatutDetailFromMotif(e.motif) === 'emploi du temps bloqué').length;
+ const exclusions = events.filter(e => e.type === 'exclusion' || getStatutDetailFromMotif(e.motif) === 'Exclusion de cours').length;
+ const sanctions = events.filter(e => e.type === 'sanction').length;
+
+ const safeNom = sanitize(student.nom ? student.nom.toUpperCase() : '');
+ const safePrenom = sanitize(student.prenom);
+ const safeClasse = sanitize(student.classe);
+ const formattedRetenues = Number.isInteger(retenues) ? retenues : retenues.toFixed(1);
+
+ const card = document.createElement('div');
+ card.className = "bg-white rounded-2xl p-4 border border-slate-200/90 shadow-2xs hover:shadow-md transition cursor-pointer flex flex-col justify-between";
+ card.onclick = () => openStudentDetail(student.id);
+
+ card.innerHTML = `
+ <div>
+ <div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
+ <div>
+ <h4 class="font-bold text-slate-800 text-sm">${safeNom} ${safePrenom}</h4>
+ <span class="text-xs text-slate-500 font-medium">${safeClasse}</span>
+ </div>
+ <span class="bg-indigo-50 text-indigo-700 text-xs font-extrabold px-2.5 py-0.5 rounded-full border border-indigo-200" title="Total d'événements">
+ ${events.length} evt(s)
+ </span>
+ </div>
+
+ <div class="mt-3">
+ <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Synthèse des Compteurs</p>
+ <div class="grid grid-cols-3 gap-2 text-center text-xs">
+ <div class="bg-amber-50 p-2 rounded-xl border border-amber-200/80">
+ <span class="block text-[10px] text-amber-800 font-semibold">Retards</span>
+ <span class="font-extrabold text-amber-700 text-sm">${retards}</span>
+ </div>
+ <div class="bg-rose-50 p-2 rounded-xl border border-rose-200/80">
+ <span class="block text-[10px] text-rose-800 font-semibold">Absences</span>
+ <span class="font-extrabold text-rose-700 text-sm">${absences}</span>
+ </div>
+ <div class="bg-purple-50 p-2 rounded-xl border border-purple-200/80">
+ <span class="block text-[10px] text-purple-800 font-semibold">Retenues</span>
+ <span class="font-extrabold text-purple-700 text-sm">${formattedRetenues}h</span>
+ </div>
+ <div class="bg-amber-50/70 p-2 rounded-xl border border-amber-200/60">
+ <span class="block text-[10px] text-amber-900 font-semibold">EDT Bloqué</span>
+ <span class="font-extrabold text-amber-800 text-sm">${emploiBloque}</span>
+ </div>
+ <div class="bg-rose-50/70 p-2 rounded-xl border border-rose-200/60">
+ <span class="block text-[10px] text-rose-900 font-semibold">Exclusions</span>
+ <span class="font-extrabold text-rose-800 text-sm">${exclusions}</span>
+ </div>
+ <div class="bg-red-50 p-2 rounded-xl border border-red-200/80">
+ <span class="block text-[10px] text-red-800 font-semibold">Sanctions</span>
+ <span class="font-extrabold text-red-700 text-sm">${sanctions}</span>
+ </div>
+ </div>
+ </div>
+ </div>
+ `;
+ container.appendChild(card);
+ });
+
+ lucide.createIcons();
  }
 
  // =========================================================
@@ -1699,8 +1858,9 @@ if (type === 'retenue') {
  document.getElementById('pageDetail').classList.add('hidden');
  document.getElementById('pageRecap').classList.remove('hidden');
 
+ populateClassFilter();
  updateRecapBadges();
- switchRecapTab(currentRecapCategory);
+ setRecapViewMode(currentRecapViewMode);
  }
 
  function updateRecapBadges() {
@@ -1799,7 +1959,6 @@ const tabs = document.querySelectorAll('.recap-tab');
  function parsePronoteText(text) {
  if (!text) return;
 
- // Effacer les anciens événements
  students.forEach(s => s.events = []);
 
  const lines = text.split(/\r?\n/);
@@ -2048,14 +2207,50 @@ students.push({
  }
 
  // =========================================================
- // 9. EXPORTATION PDF DE CLASSE & FICHES ÉLÈVES
+ // 9. EXPORTATION PDF DE CLASSE & FICHES ÉLÈVES AVEC GRAPHIQUES ET TRIS
  // =========================================================
  function openExportClassModal() {
  populateClassFilter();
  document.getElementById('exportClassModal').classList.remove('hidden');
  }
 
- function handleExportClassPDF(e) {
+ async function generateChartImage(labels, data, title) {
+ return new Promise((resolve) => {
+ const ctx = document.getElementById('pdfChartCanvas').getContext('2d');
+ if (pdfChartInstance) {
+ pdfChartInstance.destroy();
+ }
+ pdfChartInstance = new Chart(ctx, {
+ type: 'bar',
+ data: {
+ labels: labels,
+ datasets: [{
+ label: title,
+ data: data,
+ backgroundColor: 'rgba(79, 70, 229, 0.7)',
+ borderColor: 'rgba(67, 56, 202, 1)',
+ borderWidth: 1
+ }]
+ },
+ options: {
+ animation: false,
+ responsive: false,
+ plugins: {
+ legend: { display: true },
+ title: { display: true, text: title, font: { size: 14, weight: 'bold' } }
+ },
+ scales: {
+ y: { beginAtZero: true, ticks: { precision: 0 } }
+ }
+ }
+ });
+ setTimeout(() => {
+ resolve(pdfChartInstance.toBase64Image());
+ }, 200);
+ });
+ }
+
+ async function handleExportClassPDF(e) {
  e.preventDefault();
  const selectedClass = document.getElementById('exportClassSelect').value;
  const exportType = document.getElementById('exportTypeSelect').value;
@@ -2078,13 +2273,92 @@ doc.setFontSize(9);
 
  let currentY = 28;
 
- if (exportType === 'summary' || exportType === 'both') {
- const tableData = targetStudents.map(s => {
+ // Calcul des compteurs totaux pour la synthèse et les graphiques
+ let totauxCompteurs = {
+ 'Retards': 0,
+ 'Absences': 0,
+ 'Heures de Retenue': 0,
+ 'Emploi du temps bloqué': 0,
+ 'Exclusions de cours': 0,
+ 'Sanctions': 0
+ };
+
+ const preparedStudentData = targetStudents.map(s => {
  const events = s.events || [];
  const retards = events.filter(e => e.type === 'retard').length;
  const absences = events.filter(e => e.type === 'absence').length;
  const retenues = events.filter(e => e.type === 'retenue' || getStatutDetailFromMotif(e.motif) === 'Retenue').reduce((sum, e) => sum + getRetenueHours(e), 0);
- const formattedRetenues = Number.isInteger(retenues) ? retenues : retenues.toFixed(1);
+ const emploiBloque = events.filter(e => e.type === 'emploi_bloque' || getStatutDetailFromMotif(e.motif) === 'emploi du temps bloqué').length;
+ const exclusions = events.filter(e => e.type === 'exclusion' || getStatutDetailFromMotif(e.motif) === 'Exclusion de cours').length;
+ const sanctions = events.filter(e => e.type === 'sanction').length;
+
+ totauxCompteurs['Retards'] += retards;
+ totauxCompteurs['Absences'] += absences;
+ totauxCompteurs['Heures de Retenue'] += retenues;
+ totauxCompteurs['Emploi du temps bloqué'] += emploiBloque;
+ totauxCompteurs['Exclusions de cours'] += exclusions;
+ totauxCompteurs['Sanctions'] += sanctions;
+
+ const totalEvents = retards + absences + retenues + emploiBloque + exclusions + sanctions;
+
+ return {
+ student: s,
+ retards,
+ absences,
+ retenues,
+ emploiBloque,
+ exclusions,
+ sanctions,
+ totalEvents
+ };
+ });
+
+ if (exportType === 'summary' || exportType === 'both') {
+ // --- SECTION SYNTHÈSE GLOBALE & GRAPHIQUE ---
+ doc.setFont('Helvetica', 'bold');
+ doc.setFontSize(12);
+ doc.text("1. Synthèse globale des compteurs", 14, currentY);
+ currentY += 5;
+
+ // Tri des catégories globales du plus grand au plus petit nombre
+ const sortedTotaux = Object.entries(totauxCompteurs).sort((a, b) => b[1] - a[1]);
+
+ doc.autoTable({
+ startY: currentY,
+ head: [['Type de Compteur / Événement', 'Total de la Classe / Sélection']],
+ body: sortedTotaux.map(([cat, count]) => [cat, typeof count === 'number' && !Number.isInteger(count) ? count.toFixed(1) : count]),
+ theme: 'grid',
+ headStyles: { fillColor: [49, 46, 129] },
+ styles: { fontSize: 8 }
+ });
+
+ currentY = doc.lastAutoTable.finalY + 8;
+
+ // Génération du graphique trié du plus grand au plus petit
+ const chartLabels = sortedTotaux.map(item => item[0]);
+ const chartData = sortedTotaux.map(item => item[1]);
+ const chartImage = await generateChartImage(chartLabels, chartData, `Répartition des compteurs (${selectedClass})`);
+
+ doc.addImage(chartImage, 'PNG', 14, currentY, 180, 85);
+ currentY += 92;
+
+ if (currentY > 230) {
+ doc.addPage();
+ currentY = 15;
+ }
+
+ // --- TABLEAU DÉTAILLÉ PAR ÉLÈVE TRIÉ PAR NOMBRE DE COMPTEURS ---
+ doc.setFont('Helvetica', 'bold');
+ doc.setFontSize(12);
+ doc.text("2. Détail synthétique par élève (trié par volume d'événements)", 14, currentY);
+ currentY += 5;
+
+ // Tri des élèves du plus grand nombre d'événements cumulés au plus petit
+ const sortedStudentData = [...preparedStudentData].sort((a, b) => b.totalEvents - a.totalEvents);
+
+ const tableData = sortedStudentData.map(item => {
+ const s = item.student;
+ const formattedRetenues = Number.isInteger(item.retenues) ? item.retenues : item.retenues.toFixed(1);
 
  return [
  `${s.nom.toUpperCase()} ${s.prenom}`,
@@ -2092,19 +2366,22 @@ doc.setFontSize(9);
  s.regime,
  s.autorisationSortie === 'Oui' ? 'OUI' : 'NON (Interdit)',
  s.badgeRepere || '--',
- retards,
- absences,
- `${formattedRetenues} h`
+ item.retards,
+ item.absences,
+ `${formattedRetenues} h`,
+ item.emploiBloque,
+ item.exclusions,
+ item.sanctions
  ];
  });
 
  doc.autoTable({
  startY: currentY,
- head: [['Élève', 'Classe', 'Régime', 'Sortie', 'Badge Repère', 'Retards', 'Absences', 'Retenues']],
+ head: [['Élève', 'Classe', 'Régime', 'Sortie', 'Badge', 'Ret.', 'Abs.', 'Colles', 'EDT Blq.', 'Excl.', 'Sanc.']],
  body: tableData,
  theme: 'striped',
- headStyles: { fillColor: [49, 46, 129] },
- styles: { fontSize: 8 }
+ headStyles: { fillColor: [30, 41, 59] },
+ styles: { fontSize: 7, cellPadding: 1.5 }
  });
 
  currentY = doc.lastAutoTable.finalY + 10;
@@ -2118,7 +2395,7 @@ doc.setFontSize(9);
 
  doc.setFont('Helvetica', 'bold');
  doc.setFontSize(12);
- doc.text("Détail de l'historique des événements", 14, currentY);
+ doc.text("3. Historique chronologique et détaillé des événements", 14, currentY);
  currentY += 6;
 
  targetStudents.forEach(s => {
