@@ -84,7 +84,7 @@
  <div class="flex items-center gap-2">
  <h1 class="font-extrabold text-base sm:text-lg leading-tight tracking-tight">VieScolaire</h1>
  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
- v6.6 Mobile Pro
+ v6.8 Mobile Pro
  </span>
  </div>
  <p class="text-[10px] sm:text-xs text-indigo-200/80 hidden sm:block">Suivi des élèves & discipline Pronote</p>
@@ -100,6 +100,10 @@
  <i data-lucide="list-checks" class="w-4 h-4 text-amber-400"></i>
  <span>Récapitulatif</span>
  </button>
+ <button onclick="exportCpeAlertPDF()" class="inline-flex items-center gap-1.5 bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold px-3 py-2 rounded-xl transition shadow-xs">
+ <i data-lucide="siren" class="w-4 h-4"></i>
+ <span>PDF Alerte CPE</span>
+ </button>
  <button onclick="openAddStudentModal()" class="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3 py-2 rounded-xl transition shadow-sm">
  <i data-lucide="user-plus" class="w-4 h-4"></i>
  <span>Nouvel Élève</span>
@@ -113,6 +117,9 @@
  </div>
 
  <div class="flex md:hidden items-center gap-2">
+ <button onclick="exportCpeAlertPDF()" class="p-2 bg-rose-600 active:bg-rose-700 text-white rounded-xl shadow-xs" title="PDF Alerte CPE">
+ <i data-lucide="siren" class="w-5 h-5"></i>
+ </button>
  <button onclick="openAddStudentModal()" class="p-2 bg-emerald-500 active:bg-emerald-600 text-white rounded-xl shadow-xs">
  <i data-lucide="user-plus" class="w-5 h-5"></i>
  </button>
@@ -130,12 +137,16 @@
  <i data-lucide="list-checks" class="w-5 h-5 text-amber-500"></i>
  <span class="text-[10px] font-semibold">Récap</span>
  </button>
+ <button onclick="exportCpeAlertPDF()" class="flex flex-col items-center gap-1 text-slate-600 active:text-rose-600">
+ <i data-lucide="siren" class="w-5 h-5 text-rose-600"></i>
+ <span class="text-[10px] font-semibold">PDF CPE</span>
+ </button>
  <button onclick="triggerAbsenceImport()" class="flex flex-col items-center gap-1 text-slate-600 active:text-indigo-600">
  <i data-lucide="file-check-2" class="w-5 h-5 text-amber-600"></i>
  <span class="text-[10px] font-semibold">Import Pronote</span>
  </button>
  <button onclick="openExportClassModal()" class="flex flex-col items-center gap-1 text-slate-600 active:text-indigo-600">
- <i data-lucide="file-text" class="w-5 h-5 text-rose-600"></i>
+ <i data-lucide="file-text" class="w-5 h-5 text-indigo-600"></i>
  <span class="text-[10px] font-semibold">PDF Classe</span>
  </button>
  </nav>
@@ -159,6 +170,11 @@
  <option value="">Toutes les classes</option>
  </select>
 
+ <button onclick="exportCpeAlertPDF()" class="inline-flex items-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold px-3 py-2.5 rounded-xl transition shadow-2xs">
+ <i data-lucide="siren" class="w-4 h-4"></i>
+ <span>PDF Alerte CPE</span>
+ </button>
+
  <button onclick="triggerAbsenceImport()" class="hidden sm:inline-flex items-center gap-1.5 bg-amber-50 hover:bg-amber-100 active:bg-amber-200 text-amber-900 text-xs font-semibold px-3 py-2.5 rounded-xl border border-amber-300/80 transition shadow-2xs">
  <i data-lucide="file-check-2" class="w-4 h-4 text-amber-600"></i>
  <span>Importer Vie Scolaire / PRONOTE</span>
@@ -176,8 +192,8 @@
  </button>
  <input type="file" id="fileInput" accept=".xlsx, .xls, .csv, .txt" class="hidden" onchange="importDataFile(event)">
 
- <button onclick="openExportClassModal()" class="hidden sm:inline-flex items-center gap-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold px-3 py-2.5 rounded-xl border border-rose-200 transition">
- <i data-lucide="file-text" class="w-4 h-4 text-rose-600"></i>
+ <button onclick="openExportClassModal()" class="hidden sm:inline-flex items-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold px-3 py-2.5 rounded-xl border border-indigo-200 transition">
+ <i data-lucide="file-text" class="w-4 h-4 text-indigo-600"></i>
  <span class="hidden md:inline">Export PDF Classe</span>
  </button>
 
@@ -469,9 +485,14 @@
  </button>
  </div>
 
- <button onclick="openExportClassModal()" class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white font-semibold px-3.5 py-2 rounded-xl shadow-2xs transition text-xs sm:text-sm">
+ <button onclick="exportCpeAlertPDF()" class="inline-flex items-center justify-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white font-semibold px-3.5 py-2 rounded-xl shadow-2xs transition text-xs sm:text-sm">
+ <i data-lucide="siren" class="w-4 h-4"></i>
+ <span>Export CPE</span>
+ </button>
+
+ <button onclick="openExportClassModal()" class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-3.5 py-2 rounded-xl shadow-2xs transition text-xs sm:text-sm">
  <i data-lucide="file-text" class="w-4 h-4"></i>
- <span>Export PDF</span>
+ <span>Export PDF Classe</span>
  </button>
 
  <button onclick="showListPage()" class="inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-100 text-slate-700 font-medium px-3.5 py-2 rounded-xl border border-slate-300 shadow-2xs transition text-xs sm:text-sm">
@@ -546,7 +567,7 @@
  </section>
 
  <footer class="mt-8 text-center text-[11px] text-slate-400 no-print pb-4">
- VieScolaire Pro &bull; Version <span class="font-mono font-semibold">6.6 Mobile Pro</span> &bull; Modèle Haute Précision
+ VieScolaire Pro &bull; Version <span class="font-mono font-semibold">6.8 Mobile Pro</span> &bull; Modèle Haute Précision
  </footer>
 
  </main>
@@ -631,7 +652,7 @@
  <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-5 sm:p-6 space-y-4 border border-slate-100">
  <div class="flex justify-between items-center border-b pb-3 border-slate-100">
  <div class="flex items-center gap-2">
- <i data-lucide="file-text" class="w-5 h-5 text-rose-600"></i>
+ <i data-lucide="file-text" class="w-5 h-5 text-indigo-600"></i>
  <h3 class="font-bold text-base text-slate-800">Exportation PDF par Classe</h3>
  </div>
  <button onclick="closeModal('exportClassModal')" class="text-slate-400 hover:text-slate-600 p-1">
@@ -642,28 +663,28 @@
 <form id="exportClassForm" onsubmit="handleExportClassPDF(event)" class="space-y-4">
  <div>
  <label class="block text-xs font-semibold text-slate-600 mb-1">Sélectionner la classe</label>
- <select id="exportClassSelect" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm outline-none focus:ring-2 focus:ring-rose-500">
+ <select id="exportClassSelect" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm outline-none focus:ring-2 focus:ring-indigo-500">
  <option value="ALL">Toutes les classes</option>
  </select>
  </div>
 
  <div>
  <label class="block text-xs font-semibold text-slate-600 mb-1">Contenu du document PDF</label>
- <select id="exportTypeSelect" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm outline-none focus:ring-2 focus:ring-rose-500">
+ <select id="exportTypeSelect" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm outline-none focus:ring-2 focus:ring-indigo-500">
  <option value="summary">Synthèse globale par élève (Compteurs & Badges)</option>
  <option value="details">Historique détaillé des événements</option>
  <option value="both">Les deux (Synthèse + Historique)</option>
  </select>
  </div>
 
- <div class="bg-rose-50/80 border border-rose-200 rounded-xl p-3 text-xs text-rose-800 flex items-start gap-2">
- <i data-lucide="info" class="w-4 h-4 text-rose-600 shrink-0 mt-0.5"></i>
+ <div class="bg-indigo-50/80 border border-indigo-200 rounded-xl p-3 text-xs text-indigo-800 flex items-start gap-2">
+ <i data-lucide="info" class="w-4 h-4 text-indigo-600 shrink-0 mt-0.5"></i>
  <p>Génère un document PDF mis en page prêt pour l'impression ou l'archivage administratif.</p>
  </div>
 
  <div class="flex justify-end gap-2 pt-2">
  <button type="button" onclick="closeModal('exportClassModal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl">Annuler</button>
- <button type="submit" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-xl shadow-xs flex items-center gap-1.5">
+ <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl shadow-xs flex items-center gap-1.5">
  <i data-lucide="download" class="w-4 h-4"></i>
  <span>Télécharger PDF</span>
  </button>
@@ -2505,7 +2526,7 @@ students.push({
  }
 
  // =========================================================
- // 9. EXPORTATION PDF DE CLASSE & FICHES ÉLÈVES AVEC GRAPHIQUES ET TRIS
+ // 9. EXPORTATION PDF DE CLASSE, ALERTE CPE & FICHES ÉLÈVES
  // =========================================================
  function openExportClassModal() {
  populateClassFilter();
@@ -2525,8 +2546,8 @@ students.push({
  datasets: [{
  label: title,
  data: data,
- backgroundColor: 'rgba(79, 70, 229, 0.7)',
- borderColor: 'rgba(67, 56, 202, 1)',
+ backgroundColor: 'rgba(225, 29, 72, 0.7)',
+ borderColor: 'rgba(190, 18, 60, 1)',
  borderWidth: 1
  }]
  },
@@ -2546,6 +2567,131 @@ students.push({
  resolve(pdfChartInstance.toBase64Image());
  }, 200);
  });
+ }
+
+ function exportCpeAlertPDF() {
+ const cpeStudents = students.filter(s => !!s.alerteCPE);
+ if (cpeStudents.length === 0) {
+ alert("Aucun élève n'est actuellement marqué en Alerte CPE.");
+ return;
+ }
+
+ const { jsPDF } = window.jspdf;
+ const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+
+ doc.setFont('Helvetica', 'bold');
+ doc.setFontSize(16);
+ doc.setTextColor(190, 18, 60);
+ doc.text(`Rapport Alerte CPE - Élèves à Suivi Prioritaire`, 14, 15);
+
+ doc.setFontSize(9);
+ doc.setFont('Helvetica', 'normal');
+ doc.setTextColor(71, 85, 105);
+ doc.text(`Généré le : ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'})} - Total Élèves en Alerte : ${cpeStudents.length}`, 14, 21);
+
+ let currentY = 28;
+
+ cpeStudents.sort((a,b) => (a.classe || '').localeCompare(b.classe || '') || (a.nom || '').localeCompare(b.nom || ''));
+
+ const tableData = cpeStudents.map(s => {
+ const events = s.events || [];
+ const retards = events.filter(e => e.type === 'retard').length;
+ const absences = events.filter(e => e.type === 'absence').length;
+ const retenues = events.filter(e => e.type === 'retenue' || getStatutDetailFromMotif(e.motif) === 'Retenue').reduce((sum, e) => sum + getRetenueHours(e), 0);
+ const formattedRetenues = Number.isInteger(retenues) ? retenues : retenues.toFixed(1);
+ const emploiBloque = events.filter(e => e.type === 'emploi_bloque' || getStatutDetailFromMotif(e.motif) === 'emploi du temps bloqué').length;
+ const exclusions = events.filter(e => e.type === 'exclusion' || getStatutDetailFromMotif(e.motif) === 'Exclusion de cours').length;
+ const sanctions = events.filter(e => e.type === 'sanction').length;
+
+ return [
+ `${s.nom.toUpperCase()} ${s.prenom}`,
+ s.classe,
+ s.regime,
+ s.docNonRendu ? 'OUI' : 'Non',
+ retards,
+ absences,
+ `${formattedRetenues} h`,
+ emploiBloque,
+ exclusions,
+ sanctions
+ ];
+ });
+
+ doc.setFont('Helvetica', 'bold');
+ doc.setFontSize(11);
+ doc.setTextColor(30, 41, 59);
+ doc.text("1. Synthèse globale des élèves en Alerte CPE", 14, currentY);
+ currentY += 5;
+
+ doc.autoTable({
+ startY: currentY,
+ head: [['Élève', 'Classe', 'Régime', 'Doc.', 'Ret.', 'Abs.', 'Colles', 'EDT Blq.', 'Excl.', 'Sanc.']],
+ body: tableData,
+ theme: 'striped',
+ headStyles: { fillColor: [190, 18, 60] },
+ styles: { fontSize: 8, cellPadding: 2 }
+ });
+
+ currentY = doc.lastAutoTable.finalY + 10;
+
+ doc.setFont('Helvetica', 'bold');
+ doc.setFontSize(11);
+ doc.setTextColor(30, 41, 59);
+ doc.text("2. Historique détaillé des événements par élève", 14, currentY);
+ currentY += 6;
+
+ cpeStudents.forEach(s => {
+ const events = s.events || [];
+ if (currentY > 250) {
+ doc.addPage();
+ currentY = 15;
+ }
+
+ doc.setFont('Helvetica', 'bold');
+ doc.setFontSize(10);
+ doc.setTextColor(190, 18, 60);
+ doc.text(`• ${s.nom.toUpperCase()} ${s.prenom} (${s.classe}) - Prof: ${s.profPrincipal || 'N/R'}`, 14, currentY);
+ currentY += 4;
+
+ if (events.length === 0) {
+ doc.setFont('Helvetica', 'italic');
+ doc.setFontSize(8);
+ doc.setTextColor(100, 116, 139);
+ doc.text("Aucun événement spécifique enregistré.", 18, currentY);
+ currentY += 6;
+ } else {
+ const evData = events.map(ev => {
+ const dateStr = extractDateFromText(ev.motif) || ev.date;
+ const parsed = new Date(dateStr);
+ const formattedDate = !isNaN(parsed.getTime()) ? parsed.toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ev.date;
+ 
+let hDetail = ev.type.toUpperCase();
+ if (ev.type === 'retenue') {
+ const h = getRetenueHours(ev);
+ hDetail = `RETENUE (${Number.isInteger(h) ? h : h.toFixed(1)}h)`;
+ }
+
+ return [
+ formattedDate,
+ hDetail,
+ ev.motif || '--'
+ ];
+ });
+
+ doc.autoTable({
+ startY: currentY,
+ head: [['Date & Heure', 'Événement', 'Motif / Détail']],
+ body: evData,
+ theme: 'plain',
+ styles: { fontSize: 7, cellPadding: 1.5 },
+ margin: { left: 18 }
+ });
+
+ currentY = doc.lastAutoTable.finalY + 6;
+ }
+ });
+
+ doc.save(`Alerte_CPE_VieScolaire_${new Date().toISOString().slice(0,10)}.pdf`);
  }
 
  async function handleExportClassPDF(e) {
