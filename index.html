@@ -84,7 +84,7 @@
  <div class="flex items-center gap-2">
  <h1 class="font-extrabold text-base sm:text-lg leading-tight tracking-tight">VieScolaire</h1>
  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
- v6.5 Mobile Pro
+ v6.6 Mobile Pro
  </span>
  </div>
  <p class="text-[10px] sm:text-xs text-indigo-200/80 hidden sm:block">Suivi des élèves & discipline Pronote</p>
@@ -222,6 +222,14 @@
  <i data-lucide="users" class="w-3.5 h-3.5"></i>
  <span>Tous</span>
  </button>
+ <button id="btnFilterCPE" onclick="setQuickFilter('cpe')" class="px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200 hover:bg-rose-50 hover:text-rose-700 flex items-center gap-1.5 transition">
+ <i data-lucide="siren" class="w-3.5 h-3.5 text-rose-600"></i>
+ <span>Alerte CPE</span>
+ </button>
+ <button id="btnFilterDoc" onclick="setQuickFilter('doc')" class="px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200 hover:bg-amber-50 hover:text-amber-700 flex items-center gap-1.5 transition">
+ <i data-lucide="file-warning" class="w-3.5 h-3.5 text-amber-600"></i>
+ <span>Doc. non rendu</span>
+ </button>
  <button id="btnFilterCanteen" onclick="setQuickFilter('canteen')" class="px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200 hover:bg-emerald-50 hover:text-emerald-700 flex items-center gap-1.5 transition">
  <i data-lucide="utensils" class="w-3.5 h-3.5 text-emerald-600"></i>
  <span>Cantine</span>
@@ -280,6 +288,14 @@
  <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
  <span>CANTINE</span>
  </div>
+ <div id="detailCpeBadge" class="hidden items-center gap-1.5 bg-rose-500/30 text-rose-300 border border-rose-400/50 px-2.5 py-1 rounded-full text-xs font-bold animate-pulse">
+ <i data-lucide="siren" class="w-3.5 h-3.5"></i>
+ <span>ALERTE CPE</span>
+ </div>
+ <div id="detailDocBadge" class="hidden items-center gap-1.5 bg-amber-500/30 text-amber-300 border border-amber-400/50 px-2.5 py-1 rounded-full text-xs font-semibold">
+ <i data-lucide="file-warning" class="w-3.5 h-3.5"></i>
+ <span>DOC NON RENDU</span>
+ </div>
  </div>
  <div class="flex flex-wrap items-center gap-2 mt-2">
  <span class="bg-indigo-500/30 text-indigo-200 text-xs px-2.5 py-0.5 rounded-full border border-indigo-400/30 font-medium" id="detailClass">Classe</span>
@@ -315,6 +331,29 @@
 <div class="text-left md:text-right text-xs sm:text-sm text-slate-300 border-t md:border-t-0 pt-3 md:pt-0 border-slate-800 w-full md:w-auto">
  <p class="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Professeur Principal</p>
  <p class="font-semibold text-slate-200 text-sm sm:text-base mt-0.5" id="detailProf">Non renseigné</p>
+ </div>
+ </div>
+
+ <!-- BARRE INTERRUPTEURS ALERTES FICHE ÉLÈVE -->
+ <div class="bg-slate-100 border-b border-slate-200 px-4 sm:px-6 py-3 flex flex-wrap items-center gap-4 sm:gap-8 no-print">
+ <div class="flex items-center gap-2.5">
+ <i data-lucide="siren" class="w-4 h-4 text-rose-600"></i>
+ <span class="text-xs font-bold text-slate-700">Alerter CPE :</span>
+ <button id="detailToggleCpeBtn" onclick="toggleDetailAlerteCPE()" class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none bg-slate-300" title="Basculer alerte CPE">
+ <span id="detailToggleCpeDot" class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out translate-x-0"></span>
+ </button>
+ <span id="detailCpeStatusLabel" class="text-xs font-semibold text-slate-500">Désactivée</span>
+ </div>
+
+ <div class="h-4 w-px bg-slate-300 hidden sm:block"></div>
+
+ <div class="flex items-center gap-2.5">
+ <i data-lucide="file-warning" class="w-4 h-4 text-amber-600"></i>
+ <span class="text-xs font-bold text-slate-700">Document non rendu :</span>
+ <button id="detailToggleDocBtn" onclick="toggleDetailDocNonRendu()" class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none bg-slate-300" title="Basculer document non rendu">
+ <span id="detailToggleDocDot" class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out translate-x-0"></span>
+ </button>
+ <span id="detailDocStatusLabel" class="text-xs font-semibold text-slate-500">Non</span>
  </div>
  </div>
 
@@ -507,7 +546,7 @@
  </section>
 
  <footer class="mt-8 text-center text-[11px] text-slate-400 no-print pb-4">
- VieScolaire Pro &bull; Version <span class="font-mono font-semibold">6.5 Mobile Pro</span> &bull; Modèle Haute Précision
+ VieScolaire Pro &bull; Version <span class="font-mono font-semibold">6.6 Mobile Pro</span> &bull; Modèle Haute Précision
  </footer>
 
  </main>
@@ -745,6 +784,23 @@
  </div>
  </div>
 
+ <div class="grid grid-cols-2 gap-3 border-t border-slate-100 pt-3">
+ <div>
+ <label class="block text-xs font-semibold text-rose-700 mb-1">Alerter CPE</label>
+ <select id="newAlerteCpe" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm outline-none focus:ring-2 focus:ring-rose-500 font-semibold">
+ <option value="Non">Non</option>
+ <option value="Oui">Oui (Alerte Rouge)</option>
+ </select>
+ </div>
+ <div>
+ <label class="block text-xs font-semibold text-amber-700 mb-1">Document non rendu</label>
+ <select id="newDocNonRendu" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm outline-none focus:ring-2 focus:ring-amber-500 font-semibold">
+ <option value="Non">Non</option>
+ <option value="Oui">Oui (Orange)</option>
+ </select>
+ </div>
+ </div>
+
  <div class="flex justify-end gap-2 pt-2">
  <button type="button" onclick="closeModal('addStudentModal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl">Annuler</button>
  <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-xs">Créer l'Élève</button>
@@ -801,6 +857,8 @@
  classe: '3ème A',
  regime: 'Demi-pensionnaire',
  autorisationSortie: 'Oui',
+ alerteCPE: false,
+ docNonRendu: false,
  profPrincipal: 'M. Thomas (Maths)',
  badgeRepere: 'REP-101',
  badgeCantine: 'DP-30982',
@@ -817,6 +875,8 @@
  classe: '4ème B',
  regime: 'Externe',
  autorisationSortie: 'Non',
+ alerteCPE: true,
+ docNonRendu: true,
  profPrincipal: 'Mme Bernard (Français)',
  badgeRepere: '',
  badgeCantine: '',
@@ -832,6 +892,8 @@
  classe: '3ème A',
  regime: 'Demi-pensionnaire',
  autorisationSortie: 'Non',
+ alerteCPE: false,
+ docNonRendu: true,
  profPrincipal: 'M. Thomas (Maths)',
  badgeRepere: 'REP-103',
  badgeCantine: 'DP-30985',
@@ -982,6 +1044,10 @@
  if (data) {
  try {
  students = JSON.parse(data);
+ students.forEach(s => {
+ if (s.alerteCPE === undefined) s.alerteCPE = false;
+ if (s.docNonRendu === undefined) s.docNonRendu = false;
+ });
  } catch(e) {
  console.error("Erreur de lecture", e);
  students = demoData;
@@ -1052,6 +1118,8 @@ classes.forEach(c => {
 
  const isNoExit = student.autorisationSortie === 'Non';
  const isCanteen = student.regime === 'Demi-pensionnaire';
+ const isAlerteCpe = !!student.alerteCPE;
+ const isDocNonRendu = !!student.docNonRendu;
 
  const safeNom = sanitize(student.nom ? student.nom.toUpperCase() : '');
  const safePrenom = sanitize(student.prenom);
@@ -1069,10 +1137,20 @@ classes.forEach(c => {
  <div>
  <div class="flex justify-between items-start gap-2">
  <div class="cursor-pointer flex-1" onclick="openStudentDetail('${safeId}')">
- <div class="flex items-center gap-2 flex-wrap">
+ <div class="flex items-center gap-1.5 flex-wrap">
  <h3 class="font-bold text-slate-800 text-sm sm:text-base group-hover:text-indigo-600 transition">
  ${safeNom} ${safePrenom}
  </h3>
+ ${isAlerteCpe ? `
+ <span class="inline-flex items-center gap-1 bg-rose-600 text-white px-2 py-0.5 rounded-full text-[10px] font-extrabold shadow-2xs animate-pulse" title="Alerte CPE activée">
+ <i data-lucide="siren" class="w-3 h-3"></i> CPE
+ </span>
+ ` : ''}
+ ${isDocNonRendu ? `
+ <span class="inline-flex items-center gap-1 bg-amber-500 text-white px-2 py-0.5 rounded-full text-[10px] font-bold shadow-2xs" title="Document non rendu">
+ <i data-lucide="file-warning" class="w-3 h-3"></i> DOC
+ </span>
+ ` : ''}
  </div>
  <div class="flex items-center gap-1.5 mt-1">
  <span class="inline-block bg-slate-100 text-slate-700 font-semibold text-[11px] px-2 py-0.5 rounded-md border border-slate-200">${safeClasse}</span>
@@ -1091,6 +1169,24 @@ classes.forEach(c => {
  </div>
 
  <div class="mt-3.5 pt-2.5 border-t ${isNoExit ? 'border-red-200/60' : 'border-slate-100'} flex flex-col gap-2 text-xs">
+ 
+<!-- BOUTONS INTERRUPTEURS RAPIDES EN CARTE -->
+ <div class="grid grid-cols-2 gap-1.5 bg-slate-50 p-1.5 rounded-xl border border-slate-200/70">
+ <div class="flex items-center justify-between gap-1 px-1">
+ <span class="text-[10px] font-semibold text-rose-800 flex items-center gap-1"><i data-lucide="siren" class="w-3 h-3 text-rose-600"></i> CPE</span>
+ <button onclick="quickToggleCpe('${safeId}', event)" class="relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isAlerteCpe ? 'bg-rose-600' : 'bg-slate-300'}" title="Alerter CPE">
+ <span class="pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${isAlerteCpe ? 'translate-x-3' : 'translate-x-0'}"></span>
+ </button>
+ </div>
+
+ <div class="flex items-center justify-between gap-1 px-1 border-l border-slate-200">
+ <span class="text-[10px] font-semibold text-amber-800 flex items-center gap-1"><i data-lucide="file-warning" class="w-3 h-3 text-amber-600"></i> Doc</span>
+ <button onclick="quickToggleDoc('${safeId}', event)" class="relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isDocNonRendu ? 'bg-amber-500' : 'bg-slate-300'}" title="Document non rendu">
+ <span class="pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${isDocNonRendu ? 'translate-x-3' : 'translate-x-0'}"></span>
+ </button>
+ </div>
+ </div>
+
  <div class="flex items-center justify-between gap-2">
  <div class="flex items-center gap-1.5 bg-white/90 backdrop-blur-xs px-2 py-1 rounded-xl border border-slate-200">
  <span class="text-[11px] font-medium text-slate-600">Cantine:</span>
@@ -1142,6 +1238,26 @@ classes.forEach(c => {
  });
 
  lucide.createIcons();
+ }
+
+ function quickToggleCpe(studentId, event) {
+ if (event) event.stopPropagation();
+ const student = students.find(s => s.id === studentId);
+ if (!student) return;
+ student.alerteCPE = !student.alerteCPE;
+ saveStorage();
+ filterStudents();
+ if (selectedStudentId === studentId) updateDetailCardBadgesAndToggles(student);
+ }
+
+ function quickToggleDoc(studentId, event) {
+ if (event) event.stopPropagation();
+ const student = students.find(s => s.id === studentId);
+ if (!student) return;
+ student.docNonRendu = !student.docNonRendu;
+ saveStorage();
+ filterStudents();
+ if (selectedStudentId === studentId) updateDetailCardBadgesAndToggles(student);
  }
 
  function toggleAbsenceJustified(eventId) {
@@ -1373,7 +1489,6 @@ if (ev.type === 'retard') { badgeClass = "bg-amber-100 text-amber-800"; typeLabe
  return matchesClass && (s.events || []).some(matchesCat);
  });
 
- // Tri des élèves selon le nombre d'événements dans la catégorie (du plus grand au plus petit ou vice-versa)
  filteredStudents.sort((a, b) => {
  const countA = (a.events || []).filter(matchesCat).length;
  const countB = (b.events || []).filter(matchesCat).length;
@@ -1452,7 +1567,6 @@ if (e.type === 'retenue' || getStatutDetailFromMotif(e.motif) === 'Retenue') {
  return matchesClass && (s.events || []).length > 0;
  });
 
- // Tri du nombre d'événements du plus grand au plus petit (ou inversement)
  filteredStudents.sort((a, b) => {
  const countA = (a.events || []).length;
  const countB = (b.events || []).length;
@@ -1543,6 +1657,14 @@ document.getElementById('btnFilterAll').className = type === 'all'
 ? "px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-600 text-white shadow-2xs flex items-center gap-1.5 transition" 
 : "px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200 flex items-center gap-1.5 transition";
 
+ document.getElementById('btnFilterCPE').className = type === 'cpe' 
+? "px-3 py-1.5 rounded-xl text-xs font-semibold bg-rose-600 text-white shadow-2xs flex items-center gap-1.5 transition" 
+: "px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200 hover:bg-rose-50 hover:text-rose-700 flex items-center gap-1.5 transition";
+
+ document.getElementById('btnFilterDoc').className = type === 'doc' 
+? "px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-500 text-white shadow-2xs flex items-center gap-1.5 transition" 
+: "px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200 hover:bg-amber-50 hover:text-amber-700 flex items-center gap-1.5 transition";
+
  document.getElementById('btnFilterCanteen').className = type === 'canteen' 
 ? "px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-600 text-white shadow-2xs flex items-center gap-1.5 transition" 
 : "px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200 hover:bg-emerald-50 hover:text-emerald-700 flex items-center gap-1.5 transition";
@@ -1568,7 +1690,11 @@ const matchesSearch = fullName.includes(query) || reverseFullName.includes(query
  const matchesClass = selectedClass === "" || student.classe === selectedClass;
 
  let matchesQuick = true;
- if (currentQuickFilter === 'canteen') {
+ if (currentQuickFilter === 'cpe') {
+ matchesQuick = !!student.alerteCPE;
+ } else if (currentQuickFilter === 'doc') {
+ matchesQuick = !!student.docNonRendu;
+ } else if (currentQuickFilter === 'canteen') {
  matchesQuick = student.regime === 'Demi-pensionnaire';
  } else if (currentQuickFilter === 'no-exit') {
  matchesQuick = student.autorisationSortie === 'Non';
@@ -1667,6 +1793,8 @@ document.getElementById('detailClass').textContent = student.classe || '';
  document.getElementById('detailRegime').textContent = student.regime || '';
  document.getElementById('detailProf').textContent = student.profPrincipal || 'Non renseigné';
 
+ updateDetailCardBadgesAndToggles(student);
+
  const canteenIndicator = document.getElementById('detailCanteenIndicator');
  const qrBox = document.getElementById('detailCanteenQRBox');
  
@@ -1704,6 +1832,79 @@ qrBox.classList.remove('hidden');
 
  window.scrollTo(0, 0);
 
+ lucide.createIcons();
+ }
+
+ function updateDetailCardBadgesAndToggles(student) {
+ const cpeBadge = document.getElementById('detailCpeBadge');
+ const docBadge = document.getElementById('detailDocBadge');
+
+ if (student.alerteCPE) {
+ cpeBadge.classList.remove('hidden');
+ cpeBadge.classList.add('flex');
+ } else {
+ cpeBadge.classList.add('hidden');
+ cpeBadge.classList.remove('flex');
+ }
+
+ if (student.docNonRendu) {
+ docBadge.classList.remove('hidden');
+ docBadge.classList.add('flex');
+ } else {
+ docBadge.classList.add('hidden');
+ docBadge.classList.remove('flex');
+ }
+
+ const btnCpe = document.getElementById('detailToggleCpeBtn');
+ const dotCpe = document.getElementById('detailToggleCpeDot');
+ const labelCpe = document.getElementById('detailCpeStatusLabel');
+
+ if (student.alerteCPE) {
+ btnCpe.className = "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none bg-rose-600";
+ dotCpe.className = "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out translate-x-5";
+ labelCpe.textContent = "ACTIVÉE (ROUGE)";
+ labelCpe.className = "text-xs font-bold text-rose-600";
+ } else {
+ btnCpe.className = "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none bg-slate-300";
+ dotCpe.className = "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out translate-x-0";
+ labelCpe.textContent = "Désactivée";
+ labelCpe.className = "text-xs font-semibold text-slate-500";
+ }
+
+ const btnDoc = document.getElementById('detailToggleDocBtn');
+ const dotDoc = document.getElementById('detailToggleDocDot');
+ const labelDoc = document.getElementById('detailDocStatusLabel');
+
+ if (student.docNonRendu) {
+ btnDoc.className = "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none bg-amber-500";
+ dotDoc.className = "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out translate-x-5";
+ labelDoc.textContent = "OUI (ORANGE)";
+ labelDoc.className = "text-xs font-bold text-amber-600";
+ } else {
+ btnDoc.className = "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none bg-slate-300";
+ dotDoc.className = "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out translate-x-0";
+ labelDoc.textContent = "Non";
+ labelDoc.className = "text-xs font-semibold text-slate-500";
+ }
+ }
+
+ function toggleDetailAlerteCPE() {
+ if (!selectedStudentId) return;
+ const student = students.find(s => s.id === selectedStudentId);
+ if (!student) return;
+ student.alerteCPE = !student.alerteCPE;
+ saveStorage();
+ updateDetailCardBadgesAndToggles(student);
+ lucide.createIcons();
+ }
+
+ function toggleDetailDocNonRendu() {
+ if (!selectedStudentId) return;
+ const student = students.find(s => s.id === selectedStudentId);
+ if (!student) return;
+ student.docNonRendu = !student.docNonRendu;
+ saveStorage();
+ updateDetailCardBadgesAndToggles(student);
  lucide.createIcons();
  }
 
@@ -2088,6 +2289,8 @@ students.push({
  classe: String(classe).trim(),
  regime: String(regime).trim(),
  autorisationSortie: String(autoris).trim(),
+ alerteCPE: false,
+ docNonRendu: false,
  badgeRepere: '',
  badgeCantine: '',
  events: []
@@ -2194,6 +2397,10 @@ students.push({
  const imported = JSON.parse(evt.target.result);
  if (Array.isArray(imported)) {
  students = imported;
+ students.forEach(s => {
+ if (s.alerteCPE === undefined) s.alerteCPE = false;
+ if (s.docNonRendu === undefined) s.docNonRendu = false;
+ });
  saveStorage();
  populateClassFilter();
  filterStudents();
@@ -2210,7 +2417,7 @@ students.push({
  }
 
  function exportGlobalCSV() {
- let csv = "ID;Nom;Prénom;Classe;Régime;AutorisationSortie;BadgeCantine;BadgeRepere;Retards;Absences;HeuresRetenue;EmploiBloque;Exclusions;Sanctions\n";
+ let csv = "ID;Nom;Prénom;Classe;Régime;AutorisationSortie;AlerteCPE;DocNonRendu;BadgeCantine;BadgeRepere;Retards;Absences;HeuresRetenue;EmploiBloque;Exclusions;Sanctions\n";
  students.forEach(s => {
  const events = s.events || [];
  const retards = events.filter(e => e.type === 'retard').length;
@@ -2220,7 +2427,7 @@ students.push({
  const exclusions = events.filter(e => e.type === 'exclusion' || getStatutDetailFromMotif(e.motif) === 'Exclusion de cours').length;
  const sanctions = events.filter(e => e.type === 'sanction').length;
 
- csv += `"${s.id}";"${s.nom}";"${s.prenom}";"${s.classe}";"${s.regime}";"${s.autorisationSortie}";"${s.badgeCantine || ''}";"${s.badgeRepere || ''}";${retards};${absences};${retenues};${emploiBloque};${exclusions};${sanctions}\n`;
+ csv += `"${s.id}";"${s.nom}";"${s.prenom}";"${s.classe}";"${s.regime}";"${s.autorisationSortie}";"${s.alerteCPE ? 'Oui' : 'Non'}";"${s.docNonRendu ? 'Oui' : 'Non'}";"${s.badgeCantine || ''}";"${s.badgeRepere || ''}";${retards};${absences};${retenues};${emploiBloque};${exclusions};${sanctions}\n`;
  });
 
  shareOrDownloadFile(csv, `Export_VieScolaire_${new Date().toISOString().slice(0,10)}.csv`, 'text/csv');
@@ -2293,7 +2500,6 @@ doc.setFontSize(9);
 
  let currentY = 28;
 
- // Calcul des compteurs totaux pour la synthèse et les graphiques
  let totauxCompteurs = {
  'Retards': 0,
  'Absences': 0,
@@ -2334,13 +2540,11 @@ doc.setFontSize(9);
  });
 
  if (exportType === 'summary' || exportType === 'both') {
- // --- SECTION SYNTHÈSE GLOBALE & GRAPHIQUE ---
  doc.setFont('Helvetica', 'bold');
  doc.setFontSize(12);
  doc.text("1. Synthèse globale des compteurs", 14, currentY);
  currentY += 5;
 
- // Tri des catégories globales du plus grand au plus petit nombre
  const sortedTotaux = Object.entries(totauxCompteurs).sort((a, b) => b[1] - a[1]);
 
  doc.autoTable({
@@ -2354,7 +2558,6 @@ doc.setFontSize(9);
 
  currentY = doc.lastAutoTable.finalY + 8;
 
- // Génération du graphique trié du plus grand au plus petit
  const chartLabels = sortedTotaux.map(item => item[0]);
  const chartData = sortedTotaux.map(item => item[1]);
  const chartImage = await generateChartImage(chartLabels, chartData, `Répartition des compteurs (${selectedClass})`);
@@ -2367,25 +2570,28 @@ doc.setFontSize(9);
  currentY = 15;
  }
 
- // --- TABLEAU DÉTAILLÉ PAR ÉLÈVE TRIÉ PAR NOMBRE DE COMPTEURS ---
  doc.setFont('Helvetica', 'bold');
  doc.setFontSize(12);
  doc.text("2. Détail synthétique par élève (trié par volume d'événements)", 14, currentY);
  currentY += 5;
 
- // Tri des élèves du plus grand nombre d'événements cumulés au plus petit
  const sortedStudentData = [...preparedStudentData].sort((a, b) => b.totalEvents - a.totalEvents);
 
  const tableData = sortedStudentData.map(item => {
  const s = item.student;
  const formattedRetenues = Number.isInteger(item.retenues) ? item.retenues : item.retenues.toFixed(1);
 
+ let alertesStr = [];
+ if (s.alerteCPE) alertesStr.push("CPE");
+ if (s.docNonRendu) alertesStr.push("DOC");
+ const alertesLabel = alertesStr.length > 0 ? alertesStr.join('/') : '--';
+
  return [
  `${s.nom.toUpperCase()} ${s.prenom}`,
  s.classe,
  s.regime,
- s.autorisationSortie === 'Oui' ? 'OUI' : 'NON (Interdit)',
- s.badgeRepere || '--',
+ alertesLabel,
+ s.autorisationSortie === 'Oui' ? 'OUI' : 'NON',
  item.retards,
  item.absences,
  `${formattedRetenues} h`,
@@ -2397,7 +2603,7 @@ doc.setFontSize(9);
 
  doc.autoTable({
  startY: currentY,
- head: [['Élève', 'Classe', 'Régime', 'Sortie', 'Badge', 'Ret.', 'Abs.', 'Colles', 'EDT Blq.', 'Excl.', 'Sanc.']],
+ head: [['Élève', 'Classe', 'Régime', 'Alertes', 'Sortie', 'Ret.', 'Abs.', 'Colles', 'EDT Blq.', 'Excl.', 'Sanc.']],
  body: tableData,
  theme: 'striped',
  headStyles: { fillColor: [30, 41, 59] },
@@ -2481,7 +2687,8 @@ let hDetail = ev.type.toUpperCase();
  doc.setFontSize(10);
  doc.setFont('Helvetica', 'normal');
  doc.text(`Classe : ${student.classe || '--'} | Régime : ${student.regime || '--'} | Sortie : ${student.autorisationSortie === 'Oui' ? 'AUTORISÉE' : 'INTERDITE'}`, 14, 22);
- doc.text(`Professeur Principal : ${student.profPrincipal || 'Non renseigné'}`, 14, 27);
+ doc.text(`Alerte CPE : ${student.alerteCPE ? 'OUI' : 'NON'} | Document non rendu : ${student.docNonRendu ? 'OUI' : 'NON'}`, 14, 27);
+ doc.text(`Professeur Principal : ${student.profPrincipal || 'Non renseigné'}`, 14, 32);
 
  const events = student.events || [];
  const retards = events.filter(e => e.type === 'retard').length;
@@ -2490,7 +2697,7 @@ let hDetail = ev.type.toUpperCase();
  const formattedRetenues = Number.isInteger(retenues) ? retenues : retenues.toFixed(1);
 
  doc.autoTable({
- startY: 32,
+ startY: 37,
  head: [['Retards', 'Absences', 'Heures de Retenue']],
  body: [[retards, absences, `${formattedRetenues} h`]],
  theme: 'grid',
@@ -2537,6 +2744,8 @@ let detail = ev.type.toUpperCase();
  const classe = document.getElementById('newClasse').value.trim();
  const regime = document.getElementById('newRegime').value;
  const autoris = document.getElementById('newAutorisation').value;
+ const alerteCpeVal = document.getElementById('newAlerteCpe').value === 'Oui';
+ const docNonRenduVal = document.getElementById('newDocNonRendu').value === 'Oui';
  const prof = document.getElementById('newProf').value.trim();
 
  const newStudent = {
@@ -2546,6 +2755,8 @@ let detail = ev.type.toUpperCase();
  classe,
  regime,
  autorisationSortie: autoris,
+ alerteCPE: alerteCpeVal,
+ docNonRendu: docNonRenduVal,
  profPrincipal: prof,
  badgeRepere: '',
  badgeCantine: '',
