@@ -104,6 +104,10 @@
  <i data-lucide="siren" class="w-4 h-4"></i>
  <span>PDF Alerte CPE</span>
  </button>
+ <button onclick="exportUnjustifiedAbsencesPDF()" class="inline-flex items-center gap-1.5 bg-red-700 hover:bg-red-600 text-white text-xs font-semibold px-3 py-2 rounded-xl transition shadow-xs" title="Export PDF Absences Injustifiées par feuille">
+ <i data-lucide="user-x" class="w-4 h-4"></i>
+ <span>PDF Abs. Injustifiées</span>
+ </button>
  <button onclick="openAddStudentModal()" class="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3 py-2 rounded-xl transition shadow-sm">
  <i data-lucide="user-plus" class="w-4 h-4"></i>
  <span>Nouvel Élève</span>
@@ -117,6 +121,9 @@
  </div>
 
  <div class="flex md:hidden items-center gap-2">
+ <button onclick="exportUnjustifiedAbsencesPDF()" class="p-2 bg-red-700 active:bg-red-800 text-white rounded-xl shadow-xs" title="PDF Abs. Injustifiées">
+ <i data-lucide="user-x" class="w-5 h-5"></i>
+ </button>
  <button onclick="exportCpeAlertPDF()" class="p-2 bg-rose-600 active:bg-rose-700 text-white rounded-xl shadow-xs" title="PDF Alerte CPE">
  <i data-lucide="siren" class="w-5 h-5"></i>
  </button>
@@ -137,13 +144,13 @@
  <i data-lucide="list-checks" class="w-5 h-5 text-amber-500"></i>
  <span class="text-[10px] font-semibold">Récap</span>
  </button>
+ <button onclick="exportUnjustifiedAbsencesPDF()" class="flex flex-col items-center gap-1 text-slate-600 active:text-red-700">
+ <i data-lucide="user-x" class="w-5 h-5 text-red-700"></i>
+ <span class="text-[10px] font-semibold">Abs. Injust.</span>
+ </button>
  <button onclick="exportCpeAlertPDF()" class="flex flex-col items-center gap-1 text-slate-600 active:text-rose-600">
  <i data-lucide="siren" class="w-5 h-5 text-rose-600"></i>
  <span class="text-[10px] font-semibold">PDF CPE</span>
- </button>
- <button onclick="triggerAbsenceImport()" class="flex flex-col items-center gap-1 text-slate-600 active:text-indigo-600">
- <i data-lucide="file-check-2" class="w-5 h-5 text-amber-600"></i>
- <span class="text-[10px] font-semibold">Import Pronote</span>
  </button>
  <button onclick="openExportClassModal()" class="flex flex-col items-center gap-1 text-slate-600 active:text-indigo-600">
  <i data-lucide="file-text" class="w-5 h-5 text-indigo-600"></i>
@@ -169,6 +176,11 @@
  <select id="classFilter" onchange="filterStudents()" class="bg-slate-50 border border-slate-200 text-slate-700 text-xs sm:text-sm rounded-xl px-3 py-2.5 outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
  <option value="">Toutes les classes</option>
  </select>
+
+ <button onclick="exportUnjustifiedAbsencesPDF()" class="inline-flex items-center gap-1.5 bg-red-700 hover:bg-red-800 text-white text-xs font-semibold px-3 py-2.5 rounded-xl transition shadow-2xs">
+ <i data-lucide="user-x" class="w-4 h-4"></i>
+ <span>PDF Abs. Injustifiées</span>
+ </button>
 
  <button onclick="exportCpeAlertPDF()" class="inline-flex items-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold px-3 py-2.5 rounded-xl transition shadow-2xs">
  <i data-lucide="siren" class="w-4 h-4"></i>
@@ -280,9 +292,13 @@
  </button>
 
  <div class="flex items-center gap-2">
+ <button onclick="exportSingleStudentUnjustifiedAbsencesPDF()" class="inline-flex items-center gap-1.5 bg-red-700 hover:bg-red-800 text-white font-semibold px-3.5 py-2 rounded-xl shadow-2xs transition text-xs sm:text-sm" title="Exporter uniquement les absences injustifiées de cet élève">
+ <i data-lucide="user-x" class="w-4 h-4"></i>
+ <span class="hidden sm:inline">PDF Abs.</span> Injustifiées
+ </button>
  <button onclick="exportStudentPDF()" class="inline-flex items-center gap-1.5 bg-rose-600 active:bg-rose-700 text-white font-semibold px-3.5 py-2 rounded-xl shadow-2xs transition text-xs sm:text-sm">
  <i data-lucide="file-text" class="w-4 h-4"></i>
- <span class="hidden sm:inline">Exporter</span> PDF
+ <span class="hidden sm:inline">Exporter</span> PDF Fiche
  </button>
  <button onclick="confirmDeleteStudent()" class="inline-flex items-center gap-1.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-semibold px-3.5 py-2 rounded-xl transition text-xs sm:text-sm">
  <i data-lucide="trash-2" class="w-4 h-4"></i>
@@ -402,8 +418,8 @@
  </div>
 
  <div class="bg-white p-3.5 rounded-xl border border-slate-200 text-center shadow-2xs">
- <div class="text-xs text-slate-500 font-semibold">Sanctions</div>
- <div class="text-xl sm:text-2xl font-extrabold text-red-700 my-0.5" id="countSanctions">0</div>
+ <div class="text-xs text-slate-500 font-semibold">Absences injustifiées</div>
+ <div class="text-xl sm:text-2xl font-extrabold text-red-700 my-0.5" id="countAbsInjustifiees">0</div>
  </div>
  </div>
  </div>
@@ -437,8 +453,8 @@
  <button onclick="setHistoryTab('exclusion')" id="hist-tab-exclusion" class="hist-tab shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition text-slate-600 hover:bg-slate-200/70">
  Exclusions de cours
  </button>
- <button onclick="setHistoryTab('sanction')" id="hist-tab-sanction" class="hist-tab shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition text-slate-600 hover:bg-slate-200/70">
- Sanctions
+ <button onclick="setHistoryTab('abs_injustifiee')" id="hist-tab-abs_injustifiee" class="hist-tab shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition text-slate-600 hover:bg-slate-200/70">
+ Absences injustifiées
  </button>
  </div>
 
@@ -485,6 +501,11 @@
  </button>
  </div>
 
+ <button onclick="exportUnjustifiedAbsencesPDF()" class="inline-flex items-center justify-center gap-1.5 bg-red-700 hover:bg-red-800 text-white font-semibold px-3.5 py-2 rounded-xl shadow-2xs transition text-xs sm:text-sm">
+ <i data-lucide="user-x" class="w-4 h-4"></i>
+ <span>PDF Abs. Injust.</span>
+ </button>
+
  <button onclick="exportCpeAlertPDF()" class="inline-flex items-center justify-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white font-semibold px-3.5 py-2 rounded-xl shadow-2xs transition text-xs sm:text-sm">
  <i data-lucide="siren" class="w-4 h-4"></i>
  <span>Export CPE</span>
@@ -529,10 +550,10 @@
  <span>Exclusion de cours</span>
  <span id="badge-exclusion" class="bg-slate-200 text-slate-700 text-[10px] px-1.5 py-0.5 rounded-full">0</span>
  </button>
- <button onclick="switchRecapTab('sanction')" id="tab-sanction" class="recap-tab shrink-0 px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition text-slate-600 hover:bg-slate-100">
+ <button onclick="switchRecapTab('abs_injustifiee')" id="tab-abs_injustifiee" class="recap-tab shrink-0 px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition text-slate-600 hover:bg-slate-100">
  <i data-lucide="shield-alert" class="w-4 h-4"></i>
- <span>Sanctions</span>
- <span id="badge-sanction" class="bg-slate-200 text-slate-700 text-[10px] px-1.5 py-0.5 rounded-full">0</span>
+ <span>Absences injustifiées</span>
+ <span id="badge-abs_injustifiee" class="bg-slate-200 text-slate-700 text-[10px] px-1.5 py-0.5 rounded-full">0</span>
  </button>
  <button onclick="switchRecapTab('carnet')" id="tab-carnet" class="recap-tab shrink-0 px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition text-slate-600 hover:bg-slate-100">
  <i data-lucide="book-open" class="w-4 h-4"></i>
@@ -674,6 +695,7 @@
  <option value="summary">Synthèse globale par élève (Compteurs & Badges)</option>
  <option value="details">Historique détaillé des événements</option>
  <option value="both">Les deux (Synthèse + Historique)</option>
+ <option value="unjustified">Absences injustifiées seulement (1 feuille par élève)</option>
  </select>
  </div>
 
@@ -725,8 +747,9 @@
  </div>
 
  <div id="pronotePunitionTypeField" class="hidden">
- <label class="block text-xs font-semibold text-slate-600 mb-1">Type de Punition / Sanction</label>
+ <label class="block text-xs font-semibold text-slate-600 mb-1">Type d'absence injustifiée / Punition</label>
  <select id="eventPronoteTypeInput" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+ <option value="Absence injustifiée">Absence injustifiée</option>
  <option value="Retenue">Retenue / Colle</option>
  <option value="Exclusion de cours">Exclusion de cours</option>
  <option value="emploi du temps bloqué">emploi du temps bloqué</option>
@@ -1366,8 +1389,11 @@ const tabs = document.querySelectorAll('.hist-tab');
  if (currentHistoryFilter === 'exclusion') {
  return e.type === 'exclusion' || motifStatut === 'Exclusion de cours';
  }
- if (currentHistoryFilter === 'sanction') {
- return e.type === 'sanction';
+ if (currentHistoryFilter === 'abs_injustifiee') {
+ const isAbs = e.type === 'absence' || (e.pronoteType && e.pronoteType.toLowerCase().includes('absence injustifiée'));
+ const hasOui = /\boui\b/i.test(e.motif || '');
+ const isJust = e.justified === 'Oui' || hasOui;
+ return isAbs && !isJust;
  }
  return true;
  });
@@ -1396,7 +1422,7 @@ if (ev.type === 'retard') { badgeClass = "bg-amber-100 text-amber-800"; typeLabe
  else if (ev.type === 'emploi_bloque') { badgeClass = "bg-amber-100 text-amber-900"; typeLabel = "EMPLOI DU TEMPS BLOQUÉ"; }
  else if (ev.type === 'exclusion') { badgeClass = "bg-rose-100 text-rose-900"; typeLabel = "EXCLUSION DE COURS"; }
  else if (ev.type === 'observation') { badgeClass = "bg-blue-100 text-blue-800"; typeLabel = "OBSERVATION"; }
- else if (ev.type === 'sanction') { badgeClass = "bg-red-100 text-red-800 font-bold"; typeLabel = ev.pronoteType ? `SANCTION (${ev.pronoteType.toUpperCase()})` : "SANCTION"; }
+ else if (ev.type === 'abs_injustifiee' || (ev.pronoteType && ev.pronoteType.toLowerCase().includes('absence injustifiée'))) { badgeClass = "bg-red-100 text-red-800 font-bold"; typeLabel = "ABSENCE INJUSTIFIÉE"; }
  else if (ev.type === 'carnet') { badgeClass = "bg-slate-200 text-slate-800"; typeLabel = "OUBLI CARNET"; }
 
  const safeEvId = sanitize(ev.id);
@@ -1425,7 +1451,7 @@ if (ev.type === 'retard') { badgeClass = "bg-amber-100 text-amber-800"; typeLabe
  <i data-lucide="refresh-cw" class="w-3 h-3 ml-0.5 opacity-60"></i>
  </button>
  `;
- } else if (ev.type === 'sanction' && ev.pronoteType) {
+ } else if (ev.type === 'abs_injustifiee' && ev.pronoteType) {
  detailText = `<span class="font-semibold text-xs text-red-700">${sanitize(ev.pronoteType)}</span>`;
  } else if (ev.type === 'emploi_bloque') {
  detailText = `<span class="font-semibold text-xs text-amber-800">emploi du temps bloqué</span>`;
@@ -1510,6 +1536,12 @@ if (ev.type === 'retard') { badgeClass = "bg-amber-100 text-amber-800"; typeLabe
  if (cat === 'emploi_bloque' && motifStatut === 'emploi du temps bloqué') return true;
  if (cat === 'exclusion' && motifStatut === 'Exclusion de cours') return true;
  if (cat === 'retenue' && motifStatut === 'Retenue') return true;
+ if (cat === 'abs_injustifiee') {
+ const isAbs = e.type === 'absence' || (e.pronoteType && e.pronoteType.toLowerCase().includes('absence injustifiée'));
+ const hasOui = /\boui\b/i.test(e.motif || '');
+ const isJust = e.justified === 'Oui' || hasOui;
+ return isAbs && !isJust;
+ }
  return false;
  };
 
@@ -1647,7 +1679,12 @@ if (e.type === 'retenue' || getStatutDetailFromMotif(e.motif) === 'Retenue') {
  const retenues = events.filter(e => e.type === 'retenue' || getStatutDetailFromMotif(e.motif) === 'Retenue').reduce((sum, e) => sum + getRetenueHours(e), 0);
  const emploiBloque = events.filter(e => e.type === 'emploi_bloque' || getStatutDetailFromMotif(e.motif) === 'emploi du temps bloqué').length;
  const exclusions = events.filter(e => e.type === 'exclusion' || getStatutDetailFromMotif(e.motif) === 'Exclusion de cours').length;
- const sanctions = events.filter(e => e.type === 'sanction').length;
+ const absInjustifiees = events.filter(e => {
+ const isAbs = e.type === 'absence' || (e.pronoteType && e.pronoteType.toLowerCase().includes('absence injustifiée'));
+ const hasOui = /\boui\b/i.test(e.motif || '');
+ const isJust = e.justified === 'Oui' || hasOui;
+ return isAbs && !isJust;
+ }).length;
 
  const isAlerteCpe = !!student.alerteCPE;
  const isDocNonRendu = !!student.docNonRendu;
@@ -1726,8 +1763,8 @@ if (e.type === 'retenue' || getStatutDetailFromMotif(e.motif) === 'Retenue') {
  <span class="font-extrabold text-rose-800 text-sm">${exclusions}</span>
  </div>
  <div class="bg-red-50 p-2 rounded-xl border border-red-200/80">
- <span class="block text-[10px] text-red-800 font-semibold">Sanctions</span>
- <span class="font-extrabold text-red-700 text-sm">${sanctions}</span>
+ <span class="block text-[10px] text-red-800 font-semibold">Abs. Injustifiées</span>
+ <span class="font-extrabold text-red-700 text-sm">${absInjustifiees}</span>
  </div>
  </div>
  </div>
@@ -2078,7 +2115,12 @@ const qrContent = val && val.trim() ? val.trim() : 'SANS-BADGE';
  const retenues = events.filter(e => e.type === 'retenue' || getStatutDetailFromMotif(e.motif) === 'Retenue').reduce((sum, e) => sum + getRetenueHours(e), 0);
  const emploiBloque = events.filter(e => e.type === 'emploi_bloque' || getStatutDetailFromMotif(e.motif) === 'emploi du temps bloqué').length;
  const exclusions = events.filter(e => e.type === 'exclusion' || getStatutDetailFromMotif(e.motif) === 'Exclusion de cours').length;
- const sanctions = events.filter(e => e.type === 'sanction').length;
+ const absInjustifiees = events.filter(e => {
+ const isAbs = e.type === 'absence' || (e.pronoteType && e.pronoteType.toLowerCase().includes('absence injustifiée'));
+ const hasOui = /\boui\b/i.test(e.motif || '');
+ const isJust = e.justified === 'Oui' || hasOui;
+ return isAbs && !isJust;
+ }).length;
 
  const formattedRetenues = Number.isInteger(retenues) ? retenues : retenues.toFixed(1);
 
@@ -2087,7 +2129,7 @@ const qrContent = val && val.trim() ? val.trim() : 'SANS-BADGE';
  document.getElementById('countRetenues').textContent = `${formattedRetenues} h`;
  document.getElementById('countEmploiBloque').textContent = emploiBloque;
  document.getElementById('countExclusion').textContent = exclusions;
- document.getElementById('countSanctions').textContent = sanctions;
+ document.getElementById('countAbsInjustifiees').textContent = absInjustifiees;
  }
 
  function openAddEventModal(type) {
@@ -2097,6 +2139,7 @@ document.getElementById('eventTypeInput').value = type;
  let title = type.toUpperCase();
  if (type === 'emploi_bloque') title = "EMPLOI DU TEMPS BLOQUÉ";
  if (type === 'exclusion') title = "EXCLUSION DE COURS";
+ if (type === 'abs_injustifiee') title = "ABSENCE INJUSTIFIÉE";
  document.getElementById('eventModalTitle').textContent = `Ajouter : ${title}`;
  
 const now = new Date();
@@ -2105,7 +2148,7 @@ const now = new Date();
 
  document.getElementById('justifiedField').classList.toggle('hidden', type !== 'absence' && type !== 'retard');
  document.getElementById('durationField').classList.toggle('hidden', type !== 'retenue');
- document.getElementById('pronotePunitionTypeField').classList.toggle('hidden', type !== 'sanction');
+ document.getElementById('pronotePunitionTypeField').classList.toggle('hidden', type !== 'abs_injustifiee');
  document.getElementById('eventMotifInput').value = '';
 
  document.getElementById('eventModal').classList.remove('hidden');
@@ -2138,7 +2181,7 @@ const now = new Date();
 if (type === 'retenue') {
  newEv.duration = parseInt(document.getElementById('eventDurationInput').value) || getRetenueHours(newEv);
  }
- if (type === 'sanction') newEv.pronoteType = document.getElementById('eventPronoteTypeInput').value;
+ if (type === 'abs_injustifiee') newEv.pronoteType = document.getElementById('eventPronoteTypeInput').value;
 
  if (!student.events) student.events = [];
  student.events.push(newEv);
@@ -2177,7 +2220,7 @@ if (type === 'retenue') {
  }
 
  function updateRecapBadges() {
- const categories = ['retard', 'absence', 'retenue', 'emploi_bloque', 'exclusion', 'sanction', 'carnet'];
+ const categories = ['retard', 'absence', 'retenue', 'emploi_bloque', 'exclusion', 'abs_injustifiee', 'carnet'];
  categories.forEach(cat => {
  const count = students.filter(s => (s.events || []).some(e => {
  if (e.type === cat) return true;
@@ -2185,6 +2228,12 @@ if (type === 'retenue') {
  if (cat === 'emploi_bloque' && motifStatut === 'emploi du temps bloqué') return true;
  if (cat === 'exclusion' && motifStatut === 'Exclusion de cours') return true;
  if (cat === 'retenue' && motifStatut === 'Retenue') return true;
+ if (cat === 'abs_injustifiee') {
+ const isAbs = e.type === 'absence' || (e.pronoteType && e.pronoteType.toLowerCase().includes('absence injustifiée'));
+ const hasOui = /\boui\b/i.test(e.motif || '');
+ const isJust = e.justified === 'Oui' || hasOui;
+ return isAbs && !isJust;
+ }
  return false;
  })).length;
  const badge = document.getElementById(`badge-${cat}`);
@@ -2294,7 +2343,7 @@ const tabs = document.querySelectorAll('.recap-tab');
  else if (lineLower.includes('retenue') || lineLower.includes('colle')) eventType = 'retenue';
  else if (lineLower.includes('emploi du temps bloqu') || lineLower.includes('edt bloqu')) eventType = 'emploi_bloque';
  else if (lineLower.includes('exclusion')) eventType = 'exclusion';
- else if (lineLower.includes('sanction')) eventType = 'sanction';
+ else if (lineLower.includes('absence injustifiée') || lineLower.includes('absence injustifiee')) eventType = 'abs_injustifiee';
  else if (lineLower.includes('carnet')) eventType = 'carnet';
 
  if (eventType) {
@@ -2472,7 +2521,7 @@ students.push({
 
  function exportJSON() {
  const jsonStr = JSON.stringify(students, null, 2);
- shareOrDownloadFile(jsonStr, `VieScolaire_Sauvegarde_${new Date().toISOString().slice(0,10)}.json`, 'application/json');
+ shareOrDownloadFile(jsonStr, `sauvegarde_vie_scolaire.json`, 'application/json');
  }
 
  function triggerJsonImport() {
@@ -2509,7 +2558,7 @@ students.push({
  }
 
  function exportGlobalCSV() {
- let csv = "ID;Nom;Prénom;Classe;Régime;AutorisationSortie;AlerteCPE;DocNonRendu;BadgeCantine;BadgeRepere;Retards;Absences;HeuresRetenue;EmploiBloque;Exclusions;Sanctions\n";
+ let csv = "ID;Nom;Prénom;Classe;Régime;AutorisationSortie;AlerteCPE;DocNonRendu;BadgeCantine;BadgeRepere;Retards;Absences;HeuresRetenue;EmploiBloque;Exclusions;AbsInjustifiees\n";
  students.forEach(s => {
  const events = s.events || [];
  const retards = events.filter(e => e.type === 'retard').length;
@@ -2517,9 +2566,14 @@ students.push({
  const retenues = events.filter(e => e.type === 'retenue' || getStatutDetailFromMotif(e.motif) === 'Retenue').reduce((sum, e) => sum + getRetenueHours(e), 0);
  const emploiBloque = events.filter(e => e.type === 'emploi_bloque' || getStatutDetailFromMotif(e.motif) === 'emploi du temps bloqué').length;
  const exclusions = events.filter(e => e.type === 'exclusion' || getStatutDetailFromMotif(e.motif) === 'Exclusion de cours').length;
- const sanctions = events.filter(e => e.type === 'sanction').length;
+ const absInjustifiees = events.filter(e => {
+ const isAbs = e.type === 'absence' || (e.pronoteType && e.pronoteType.toLowerCase().includes('absence injustifiée'));
+ const hasOui = /\boui\b/i.test(e.motif || '');
+ const isJust = e.justified === 'Oui' || hasOui;
+ return isAbs && !isJust;
+ }).length;
 
- csv += `"${s.id}";"${s.nom}";"${s.prenom}";"${s.classe}";"${s.regime}";"${s.autorisationSortie}";"${s.alerteCPE ? 'Oui' : 'Non'}";"${s.docNonRendu ? 'Oui' : 'Non'}";"${s.badgeCantine || ''}";"${s.badgeRepere || ''}";${retards};${absences};${retenues};${emploiBloque};${exclusions};${sanctions}\n`;
+ csv += `"${s.id}";"${s.nom}";"${s.prenom}";"${s.classe}";"${s.regime}";"${s.autorisationSortie}";"${s.alerteCPE ? 'Oui' : 'Non'}";"${s.docNonRendu ? 'Oui' : 'Non'}";"${s.badgeCantine || ''}";"${s.badgeRepere || ''}";${retards};${absences};${retenues};${emploiBloque};${exclusions};${absInjustifiees}\n`;
  });
 
  shareOrDownloadFile(csv, `Export_VieScolaire_${new Date().toISOString().slice(0,10)}.csv`, 'text/csv');
@@ -2601,7 +2655,12 @@ students.push({
  const formattedRetenues = Number.isInteger(retenues) ? retenues : retenues.toFixed(1);
  const emploiBloque = events.filter(e => e.type === 'emploi_bloque' || getStatutDetailFromMotif(e.motif) === 'emploi du temps bloqué').length;
  const exclusions = events.filter(e => e.type === 'exclusion' || getStatutDetailFromMotif(e.motif) === 'Exclusion de cours').length;
- const sanctions = events.filter(e => e.type === 'sanction').length;
+ const absInjustifiees = events.filter(e => {
+ const isAbs = e.type === 'absence' || (e.pronoteType && e.pronoteType.toLowerCase().includes('absence injustifiée'));
+ const hasOui = /\boui\b/i.test(e.motif || '');
+ const isJust = e.justified === 'Oui' || hasOui;
+ return isAbs && !isJust;
+ }).length;
 
  return [
  `${s.nom.toUpperCase()} ${s.prenom}`,
@@ -2613,7 +2672,7 @@ students.push({
  `${formattedRetenues} h`,
  emploiBloque,
  exclusions,
- sanctions
+ absInjustifiees
  ];
  });
 
@@ -2625,7 +2684,7 @@ students.push({
 
  doc.autoTable({
  startY: currentY,
- head: [['Élève', 'Classe', 'Régime', 'Doc.', 'Ret.', 'Abs.', 'Colles', 'EDT Blq.', 'Excl.', 'Sanc.']],
+ head: [['Élève', 'Classe', 'Régime', 'Doc.', 'Ret.', 'Abs.', 'Colles', 'EDT Blq.', 'Excl.', 'Abs. Injust.']],
  body: tableData,
  theme: 'striped',
  headStyles: { fillColor: [190, 18, 60] },
@@ -2694,12 +2753,182 @@ let hDetail = ev.type.toUpperCase();
  doc.save(`Alerte_CPE_VieScolaire_${new Date().toISOString().slice(0,10)}.pdf`);
  }
 
+ // FONCTION POUR ENREGISTRER/IMPRIMER LES ABSENCES INJUSTIFIÉES AVEC UNE FEUILLE PAR ÉLÈVE
+ function exportUnjustifiedAbsencesPDF(targetClassName = null) {
+ const selectedClass = targetClassName || document.getElementById('classFilter').value || document.getElementById('recapClassSelect').value || 'ALL';
+ 
+ const targetStudents = students.filter(s => {
+ const matchesClass = (selectedClass === 'ALL' || selectedClass === '') ? true : s.classe === selectedClass;
+ if (!matchesClass) return false;
+
+ const unjEvents = (s.events || []).filter(e => {
+ const isAbs = e.type === 'absence' || e.type === 'abs_injustifiee' || (e.pronoteType && e.pronoteType.toLowerCase().includes('absence injustifiée'));
+ const hasOui = /\boui\b/i.test(e.motif || '');
+ const isJust = e.justified === 'Oui' || hasOui;
+ return isAbs && !isJust;
+ });
+
+ return unjEvents.length > 0;
+ });
+
+ if (targetStudents.length === 0) {
+ alert("Aucun élève n'enregistre d'absences injustifiées pour la sélection choisie.");
+ return;
+ }
+
+ targetStudents.sort((a,b) => (a.classe || '').localeCompare(b.classe || '') || (a.nom || '').localeCompare(b.nom || ''));
+
+ const { jsPDF } = window.jspdf;
+ const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+
+ targetStudents.forEach((s, index) => {
+ if (index > 0) {
+ doc.addPage();
+ }
+
+ const unjEvents = (s.events || []).filter(e => {
+ const isAbs = e.type === 'absence' || e.type === 'abs_injustifiee' || (e.pronoteType && e.pronoteType.toLowerCase().includes('absence injustifiée'));
+ const hasOui = /\boui\b/i.test(e.motif || '');
+ const isJust = e.justified === 'Oui' || hasOui;
+ return isAbs && !isJust;
+ });
+
+ // TITRE TRÈS GROS EN HAUT DE CHAQUE FEUILLE
+ doc.setFont('Helvetica', 'bold');
+ doc.setFontSize(22);
+ doc.setTextColor(185, 28, 28); // Rouge foncé
+ doc.text(`${s.nom.toUpperCase()} ${s.prenom}`, 14, 20);
+
+ doc.setFontSize(16);
+ doc.setTextColor(30, 41, 59);
+ doc.text(`CLASSE : ${s.classe || 'Non renseignée'}`, 14, 28);
+
+ // SOUS-TITRE ET INFORMATIONS ÉLÈVE
+ doc.setFontSize(10);
+ doc.setFont('Helvetica', 'normal');
+ doc.setTextColor(71, 85, 105);
+ doc.text(`Régime : ${s.regime || '--'}  |  Professeur Principal : ${s.profPrincipal || 'Non renseigné'}`, 14, 35);
+ doc.text(`Document généré le : ${new Date().toLocaleDateString('fr-FR')}  |  Nombre d'absences injustifiées : ${unjEvents.length}`, 14, 40);
+
+ doc.setLineWidth(0.5);
+ doc.setDrawColor(220, 38, 38);
+ doc.line(14, 43, 196, 43);
+
+ // TABLEAU DES ABSENCES INJUSTIFIÉES
+ const tableBody = unjEvents.map(e => {
+ const dateStr = extractDateFromText(e.motif) || e.date;
+ const parsed = new Date(dateStr);
+ const formattedDate = !isNaN(parsed.getTime()) ? parsed.toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : (e.date || '--');
+
+ return [
+ formattedDate,
+ "ABSENCE INJUSTIFIÉE",
+ e.motif || 'Aucun motif renseigné'
+ ];
+ });
+
+ doc.autoTable({
+ startY: 48,
+ head: [['Date & Heure', 'Statut', 'Motif / Remarque PRONOTE']],
+ body: tableBody,
+ theme: 'striped',
+ headStyles: { fillColor: [185, 28, 28], textColor: [255, 255, 255], fontStyle: 'bold' },
+ styles: { fontSize: 9, cellPadding: 3 },
+ columnStyles: {
+ 0: { cellWidth: 42 },
+ 1: { cellWidth: 45, fontStyle: 'bold' },
+ 2: { cellWidth: 'auto' }
+ }
+ });
+ });
+
+ const filename = targetClassName 
+ ? `Absences_Injustifiees_${targetClassName}_${new Date().toISOString().slice(0,10)}.pdf`
+ : `Absences_Injustifiees_Classe_${new Date().toISOString().slice(0,10)}.pdf`;
+
+ doc.save(filename);
+ }
+
+ function exportSingleStudentUnjustifiedAbsencesPDF() {
+ if (!selectedStudentId) return;
+ const student = students.find(s => s.id === selectedStudentId);
+ if (!student) return;
+
+ const unjEvents = (student.events || []).filter(e => {
+ const isAbs = e.type === 'absence' || e.type === 'abs_injustifiee' || (e.pronoteType && e.pronoteType.toLowerCase().includes('absence injustifiée'));
+ const hasOui = /\boui\b/i.test(e.motif || '');
+ const isJust = e.justified === 'Oui' || hasOui;
+ return isAbs && !isJust;
+ });
+
+ if (unjEvents.length === 0) {
+ alert(`${student.prenom} ${student.nom} n'a aucune absence injustifiée enregistrée.`);
+ return;
+ }
+
+ const { jsPDF } = window.jspdf;
+ const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+
+ // TRÈS GROS TITRE
+ doc.setFont('Helvetica', 'bold');
+ doc.setFontSize(22);
+ doc.setTextColor(185, 28, 28);
+ doc.text(`${student.nom.toUpperCase()} ${student.prenom}`, 14, 20);
+
+ doc.setFontSize(16);
+ doc.setTextColor(30, 41, 59);
+ doc.text(`CLASSE : ${student.classe || 'Non renseignée'}`, 14, 28);
+
+ doc.setFontSize(10);
+ doc.setFont('Helvetica', 'normal');
+ doc.setTextColor(71, 85, 105);
+ doc.text(`Régime : ${student.regime || '--'}  |  Professeur Principal : ${student.profPrincipal || 'Non renseigné'}`, 14, 35);
+ doc.text(`Document généré le : ${new Date().toLocaleDateString('fr-FR')}  |  Nombre d'absences injustifiées : ${unjEvents.length}`, 14, 40);
+
+ doc.setLineWidth(0.5);
+ doc.setDrawColor(220, 38, 38);
+ doc.line(14, 43, 196, 43);
+
+ const tableBody = unjEvents.map(e => {
+ const dateStr = extractDateFromText(e.motif) || e.date;
+ const parsed = new Date(dateStr);
+ const formattedDate = !isNaN(parsed.getTime()) ? parsed.toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : (e.date || '--');
+
+ return [
+ formattedDate,
+ "ABSENCE INJUSTIFIÉE",
+ e.motif || 'Aucun motif renseigné'
+ ];
+ });
+
+ doc.autoTable({
+ startY: 48,
+ head: [['Date & Heure', 'Statut', 'Motif / Remarque PRONOTE']],
+ body: tableBody,
+ theme: 'striped',
+ headStyles: { fillColor: [185, 28, 28], textColor: [255, 255, 255], fontStyle: 'bold' },
+ styles: { fontSize: 9, cellPadding: 3 },
+ columnStyles: {
+ 0: { cellWidth: 42 },
+ 1: { cellWidth: 45, fontStyle: 'bold' },
+ 2: { cellWidth: 'auto' }
+ }
+ });
+
+ doc.save(`Absences_Injustifiees_${student.nom.toUpperCase()}_${student.prenom}_${new Date().toISOString().slice(0,10)}.pdf`);
+ }
+
  async function handleExportClassPDF(e) {
  e.preventDefault();
  const selectedClass = document.getElementById('exportClassSelect').value;
  const exportType = document.getElementById('exportTypeSelect').value;
 
  closeModal('exportClassModal');
+
+ if (exportType === 'unjustified') {
+ exportUnjustifiedAbsencesPDF(selectedClass === 'ALL' ? null : selectedClass);
+ return;
+ }
 
  const { jsPDF } = window.jspdf;
  const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
@@ -2723,7 +2952,7 @@ doc.setFontSize(9);
  'Heures de Retenue': 0,
  'Emploi du temps bloqué': 0,
  'Exclusions de cours': 0,
- 'Sanctions': 0
+ 'Absences injustifiées': 0
  };
 
  const preparedStudentData = targetStudents.map(s => {
@@ -2733,16 +2962,21 @@ doc.setFontSize(9);
  const retenues = events.filter(e => e.type === 'retenue' || getStatutDetailFromMotif(e.motif) === 'Retenue').reduce((sum, e) => sum + getRetenueHours(e), 0);
  const emploiBloque = events.filter(e => e.type === 'emploi_bloque' || getStatutDetailFromMotif(e.motif) === 'emploi du temps bloqué').length;
  const exclusions = events.filter(e => e.type === 'exclusion' || getStatutDetailFromMotif(e.motif) === 'Exclusion de cours').length;
- const sanctions = events.filter(e => e.type === 'sanction').length;
+ const absInjustifiees = events.filter(e => {
+ const isAbs = e.type === 'absence' || (e.pronoteType && e.pronoteType.toLowerCase().includes('absence injustifiée'));
+ const hasOui = /\boui\b/i.test(e.motif || '');
+ const isJust = e.justified === 'Oui' || hasOui;
+ return isAbs && !isJust;
+ }).length;
 
  totauxCompteurs['Retards'] += retards;
  totauxCompteurs['Absences'] += absences;
  totauxCompteurs['Heures de Retenue'] += retenues;
  totauxCompteurs['Emploi du temps bloqué'] += emploiBloque;
  totauxCompteurs['Exclusions de cours'] += exclusions;
- totauxCompteurs['Sanctions'] += sanctions;
+ totauxCompteurs['Absences injustifiées'] += absInjustifiees;
 
- const totalEvents = retards + absences + retenues + emploiBloque + exclusions + sanctions;
+ const totalEvents = retards + absences + retenues + emploiBloque + exclusions + absInjustifiees;
 
  return {
  student: s,
@@ -2751,7 +2985,7 @@ doc.setFontSize(9);
  retenues,
  emploiBloque,
  exclusions,
- sanctions,
+ absInjustifiees,
  totalEvents
  };
  });
@@ -2814,13 +3048,13 @@ doc.setFontSize(9);
  `${formattedRetenues} h`,
  item.emploiBloque,
  item.exclusions,
- item.sanctions
+ item.absInjustifiees
  ];
  });
 
  doc.autoTable({
  startY: currentY,
- head: [['Élève', 'Classe', 'Régime', 'Alertes', 'Sortie', 'Ret.', 'Abs.', 'Colles', 'EDT Blq.', 'Excl.', 'Sanc.']],
+ head: [['Élève', 'Classe', 'Régime', 'Alertes', 'Sortie', 'Ret.', 'Abs.', 'Colles', 'EDT Blq.', 'Excl.', 'Abs. Injust.']],
  body: tableData,
  theme: 'striped',
  headStyles: { fillColor: [30, 41, 59] },
