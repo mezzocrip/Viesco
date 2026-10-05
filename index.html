@@ -241,6 +241,13 @@
  <span>Import Application</span>
  </button>
  <input type="file" id="jsonInput" accept=".json" class="hidden" onchange="importJSON(event)">
+
+ <div class="h-4 w-px bg-slate-200 mx-1"></div>
+
+ <button onclick="triggerAbsenceImport()" class="inline-flex items-center gap-1.5 bg-amber-50 hover:bg-amber-100 active:bg-amber-200 text-amber-900 font-semibold px-3 py-2 rounded-xl border border-amber-300 transition shadow-2xs" title="Importer Vie Scolaire / PRONOTE">
+ <i data-lucide="file-check-2" class="w-4 h-4 text-amber-600"></i>
+ <span>Import PRONOTE</span>
+ </button>
  </div>
 
  <div class="flex items-center justify-between gap-2 border-t border-slate-100 pt-3 overflow-x-auto no-scrollbar">
