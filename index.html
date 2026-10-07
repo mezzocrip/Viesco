@@ -112,6 +112,10 @@
  <i data-lucide="user-plus" class="w-4 h-4"></i>
  <span>Nouvel Élève</span>
  </button>
+ <button onclick="openSettingsModal()" class="inline-flex items-center gap-1.5 bg-indigo-800/80 hover:bg-indigo-700 text-white text-xs font-semibold px-3 py-2 rounded-xl transition border border-indigo-700 shadow-xs" title="Réglages Alerte CPE">
+ <i data-lucide="settings" class="w-4 h-4"></i>
+ <span>Réglages</span>
+ </button>
 
  <div class="h-5 w-px bg-indigo-700/60"></div>
 
@@ -121,6 +125,9 @@
  </div>
 
  <div class="flex md:hidden items-center gap-2">
+ <button onclick="openSettingsModal()" class="p-2 bg-indigo-800 active:bg-indigo-700 text-white rounded-xl shadow-xs" title="Réglages Alerte CPE">
+ <i data-lucide="settings" class="w-5 h-5"></i>
+ </button>
  <button onclick="exportUnjustifiedAbsencesPDF()" class="p-2 bg-red-700 active:bg-red-800 text-white rounded-xl shadow-xs" title="PDF Abs. Injustifiées">
  <i data-lucide="user-x" class="w-5 h-5"></i>
  </button>
@@ -152,9 +159,9 @@
  <i data-lucide="siren" class="w-5 h-5 text-rose-600"></i>
  <span class="text-[10px] font-semibold">PDF CPE</span>
  </button>
- <button onclick="openExportClassModal()" class="flex flex-col items-center gap-1 text-slate-600 active:text-indigo-600">
- <i data-lucide="file-text" class="w-5 h-5 text-indigo-600"></i>
- <span class="text-[10px] font-semibold">PDF Classe</span>
+ <button onclick="openSettingsModal()" class="flex flex-col items-center gap-1 text-slate-600 active:text-indigo-600">
+ <i data-lucide="settings" class="w-5 h-5 text-indigo-600"></i>
+ <span class="text-[10px] font-semibold">Réglages</span>
  </button>
  </nav>
 
@@ -605,6 +612,56 @@
     <canvas id="pdfChartCanvas" width="800" height="400"></canvas>
  </div>
 
+ <!-- MODALE : RÉGLAGES ALERTE CPE AUTOMATIQUE -->
+ <div id="settingsModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs hidden z-50 flex items-center justify-center p-4">
+ <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-5 sm:p-6 space-y-4 border border-slate-100">
+ <div class="flex justify-between items-center border-b pb-3 border-slate-100">
+ <div class="flex items-center gap-2">
+ <i data-lucide="settings" class="w-5 h-5 text-indigo-600"></i>
+ <h3 class="font-bold text-base text-slate-800">Réglages Alerte CPE</h3>
+ </div>
+ <button onclick="closeModal('settingsModal')" class="text-slate-400 hover:text-slate-600 p-1">
+ <i data-lucide="x" class="w-5 h-5"></i>
+ </button>
+ </div>
+ 
+<form id="settingsForm" onsubmit="handleSaveSettings(event)" class="space-y-4">
+ <div>
+ <label class="block text-xs font-semibold text-slate-700 mb-1">
+ Seuil d'absences injustifiées déclenchant l'alerte
+ </label>
+ <div class="relative">
+ <input type="number" id="settingCpeThreshold" min="1" max="100" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-semibold text-slate-800">
+ <span class="absolute right-3 top-2.5 text-xs text-slate-400 font-medium">absences</span>
+ </div>
+ <p class="text-[11px] text-slate-500 mt-1">L'alerte CPE s'activera automatiquement lorsque l'élève atteint ou dépasse ce nombre d'absences non justifiées.</p>
+ </div>
+
+ <div class="border-t border-slate-100 pt-3">
+ <label class="block text-xs font-semibold text-slate-700 mb-2">
+ Niveaux de classe concernés par l'alerte automatique
+ </label>
+ <div class="grid grid-cols-2 gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200" id="settingLevelsContainer">
+ </div>
+ <p class="text-[11px] text-slate-500 mt-1">Cochez les niveaux de classe pour lesquels l'alerte CPE automatique doit s'activer.</p>
+ </div>
+
+ <div class="bg-indigo-50/80 border border-indigo-200 rounded-xl p-3 text-xs text-indigo-800 flex items-start gap-2">
+ <i data-lucide="info" class="w-4 h-4 text-indigo-600 shrink-0 mt-0.5"></i>
+ <p>Les modifications de seuil et de niveaux seront appliquées immédiatement à la base de données élèves.</p>
+ </div>
+
+ <div class="flex justify-end gap-2 pt-2">
+ <button type="button" onclick="closeModal('settingsModal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl">Annuler</button>
+ <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl shadow-xs flex items-center gap-1.5">
+ <i data-lucide="save" class="w-4 h-4"></i>
+ <span>Enregistrer les réglages</span>
+ </button>
+ </div>
+ </form>
+ </div>
+ </div>
+
  <!-- MODALE : AVERTISSEMENT CONFIRMATION IMPORT PRONOTE -->
  <div id="confirmImportPronoteModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs hidden z-50 flex items-center justify-center p-4">
  <div class="bg-white rounded-2xl shadow-xl max-w-sm w-full p-5 space-y-4 border border-slate-100 text-center">
@@ -885,6 +942,12 @@
  // 1. STATE & CONSTANTS
  // =========================================================
  const STORAGE_KEY = 'viescolaire_students_db_v6';
+ const SETTINGS_STORAGE_KEY = 'viescolaire_settings_v1';
+
+ let appSettings = {
+ cpeThreshold: 15,
+ cpeLevels: ['5', '4']
+ };
 
  let students = [];
  let selectedStudentId = null;
@@ -899,6 +962,16 @@
  let showOnlyUnjustifiedAbsences = false;
  let pdfChartInstance = null;
  let lastScrollPosition = 0;
+
+ const STANDARD_LEVELS = [
+ { code: '6', label: '6ème' },
+ { code: '5', label: '5ème' },
+ { code: '4', label: '4ème' },
+ { code: '3', label: '3ème' },
+ { code: '2', label: '2nde' },
+ { code: '1', label: '1ère' },
+ { code: 'T', label: 'Terminale' }
+ ];
 
  const demoData = [
  {
@@ -967,10 +1040,31 @@
  .replace(/'/g, '&#039;');
  }
 
- function is5emeOr4eme(classe) {
- if (!classe) return false;
+ function loadSettings() {
+ const saved = localStorage.getItem(SETTINGS_STORAGE_KEY);
+ if (saved) {
+ try {
+ appSettings = Object.assign(appSettings, JSON.parse(saved));
+ } catch(e) {
+ console.error("Erreur chargement réglages", e);
+ }
+ }
+ }
+
+ function saveSettings() {
+ localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(appSettings));
+ }
+
+ function isEligibleForAutoCpe(classe) {
+ if (!classe || !appSettings.cpeLevels || appSettings.cpeLevels.length === 0) return false;
  const c = String(classe).trim().toLowerCase();
- return /^(5|4)[\s\-\._]?(ème|eme|e|[a-z0-9]|\b)/i.test(c);
+ 
+ return appSettings.cpeLevels.some(level => {
+ const lvl = String(level).trim().toLowerCase();
+ const cleanLvl = lvl.replace(/(ème|eme|e)$/i, '');
+ const reg = new RegExp('^' + cleanLvl + '([\\s\\-\\._]?(ème|eme|e|[a-z0-9]|\\b))', 'i');
+ return reg.test(c) || c.includes(lvl);
+ });
  }
 
  function countUnjustifiedAbsences(student) {
@@ -985,10 +1079,11 @@
 
  function updateAutoCpeAlerts() {
  if (!Array.isArray(students)) return;
+ const threshold = parseInt(appSettings.cpeThreshold, 10) || 15;
  students.forEach(student => {
- if (is5emeOr4eme(student.classe)) {
+ if (isEligibleForAutoCpe(student.classe)) {
  const count = countUnjustifiedAbsences(student);
- if (count >= 15) {
+ if (count >= threshold) {
  student.alerteCPE = true;
  } else {
  student.alerteCPE = false;
@@ -1114,6 +1209,7 @@
  // 3. STORAGE & LIFECYCLE
  // =========================================================
  window.onload = function() {
+ loadSettings();
  loadStorage();
  populateClassFilter();
  renderStudentsGrid();
@@ -1147,7 +1243,74 @@
  }
 
  // =========================================================
- // 4. DOM RENDERERS
+ // 4. GESTION DES RÉGLAGES
+ // =========================================================
+ function openSettingsModal() {
+ loadSettings();
+ document.getElementById('settingCpeThreshold').value = appSettings.cpeThreshold || 15;
+ populateSettingsLevelsUI();
+ document.getElementById('settingsModal').classList.remove('hidden');
+ lucide.createIcons();
+ }
+
+ function populateSettingsLevelsUI() {
+ const container = document.getElementById('settingLevelsContainer');
+ if (!container) return;
+ container.innerHTML = '';
+
+ const detectedClasses = [...new Set(students.map(s => s.classe))].filter(Boolean);
+ const customLevels = new Set();
+ 
+ detectedClasses.forEach(c => {
+ const trimmed = c.trim();
+ const matchDigit = trimmed.match(/^([654321]|T|Cap|Ulis|Segpa)\b/i);
+ if (!matchDigit) {
+ const firstWord = trimmed.split(/[\s\-_]/)[0];
+ if (firstWord) customLevels.add(firstWord);
+ }
+ });
+
+ const allLevels = [...STANDARD_LEVELS];
+ customLevels.forEach(cl => {
+ if (!allLevels.some(l => l.code.toLowerCase() === cl.toLowerCase())) {
+ allLevels.push({ code: cl, label: cl });
+ }
+ });
+
+ allLevels.forEach(lvl => {
+ const isChecked = (appSettings.cpeLevels || []).includes(lvl.code);
+ const label = document.createElement('label');
+ label.className = "flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer select-none hover:text-indigo-600";
+ label.innerHTML = `
+ <input type="checkbox" name="cpeLevelCheckbox" value="${sanitize(lvl.code)}" ${isChecked ? 'checked' : ''} class="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500">
+ <span>${sanitize(lvl.label)}</span>
+ `;
+ container.appendChild(label);
+ });
+ }
+
+ function handleSaveSettings(e) {
+ e.preventDefault();
+ const thresholdVal = parseInt(document.getElementById('settingCpeThreshold').value, 10);
+ appSettings.cpeThreshold = isNaN(thresholdVal) || thresholdVal < 1 ? 15 : thresholdVal;
+
+ const checkboxes = document.querySelectorAll('input[name="cpeLevelCheckbox"]:checked');
+ appSettings.cpeLevels = Array.from(checkboxes).map(cb => cb.value);
+
+ saveSettings();
+ updateAutoCpeAlerts();
+ saveStorage();
+ filterStudents();
+ if (document.getElementById('pageRecap') && !document.getElementById('pageRecap').classList.contains('hidden')) {
+ renderCurrentRecapView();
+ updateRecapBadges();
+ }
+ closeModal('settingsModal');
+ alert("Réglages enregistrés avec succès.");
+ }
+
+ // =========================================================
+ // 5. DOM RENDERERS
  // =========================================================
  function populateClassFilter() {
  const select = document.getElementById('classFilter');
@@ -1814,7 +1977,7 @@ if (e.type === 'retenue' || getStatutDetailFromMotif(e.motif) === 'Retenue') {
  }
 
  // =========================================================
- // 5. EVENT HANDLERS & NAVIGATION
+ // 6. EVENT HANDLERS & NAVIGATION
  // =========================================================
  function setQuickFilter(type) {
  currentQuickFilter = type;
@@ -2239,7 +2402,7 @@ if (type === 'retenue') {
  }
 
  // =========================================================
- // 6. RÉCAPITULATIF
+ // 7. RÉCAPITULATIF
  // =========================================================
  function showRecapPage() {
  stopBadgeScanner();
@@ -2292,7 +2455,7 @@ const tabs = document.querySelectorAll('.recap-tab');
  }
 
  // =========================================================
- // 7. IMPORTATION & PARSING DE DONNÉES (PRONOTE, EXCEL, CSV)
+ // 8. IMPORTATION & PARSING DE DONNÉES (PRONOTE, EXCEL, CSV)
  // =========================================================
  function triggerAbsenceImport() {
  document.getElementById('confirmImportPronoteModal').classList.remove('hidden');
@@ -2481,7 +2644,7 @@ students.push({
  }
 
  // =========================================================
- // 8. SAUVEGARDES ET EXPORTATIONS
+ // 9. SAUVEGARDES ET EXPORTATIONS
  // =========================================================
  function openClearVieScolaireModal() {
  document.getElementById('clearVieScolaireModal').classList.remove('hidden');
@@ -2610,7 +2773,7 @@ students.push({
  }
 
  // =========================================================
- // 9. EXPORTATION PDF DE CLASSE, ALERTE CPE & FICHES ÉLÈVES
+ // 10. EXPORTATION PDF DE CLASSE, ALERTE CPE & FICHES ÉLÈVES
  // =========================================================
  function openExportClassModal() {
  populateClassFilter();
@@ -3192,7 +3355,7 @@ let detail = ev.type.toUpperCase();
  }
 
  // =========================================================
- // 10. GESTION DES ÉLÈVES (AJOUT / SUPPRESSION)
+ // 11. GESTION DES ÉLÈVES (AJOUT / SUPPRESSION)
  // =========================================================
  function openAddStudentModal() {
  document.getElementById('addStudentForm').reset();
