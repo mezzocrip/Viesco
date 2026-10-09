@@ -84,7 +84,7 @@
  <div class="flex items-center gap-2">
  <h1 class="font-extrabold text-base sm:text-lg leading-tight tracking-tight">VieScolaire</h1>
  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
- v6.8 Mobile Pro
+ v6.9 Mobile Pro
  </span>
  </div>
  <p class="text-[10px] sm:text-xs text-indigo-200/80 hidden sm:block">Suivi des élèves & discipline Pronote</p>
@@ -288,7 +288,7 @@
  </div>
  </div>
 
- <div id="studentsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5 sm:gap-4"></div>
+ <div id="studentsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
 
  <div id="emptyMessage" class="hidden text-center py-12 bg-white rounded-2xl border border-dashed border-slate-300 p-6">
  <i data-lucide="user-x" class="w-12 h-12 text-slate-300 mx-auto mb-3"></i>
@@ -341,6 +341,13 @@
  <div id="detailDocBadge" class="hidden items-center gap-1.5 bg-amber-500/30 text-amber-300 border border-amber-400/50 px-2.5 py-1 rounded-full text-xs font-semibold">
  <i data-lucide="file-warning" class="w-3.5 h-3.5"></i>
  <span>DOC NON RENDU</span>
+ </div>
+ </div>
+ <div id="detailThresholdBox" class="hidden items-start gap-1.5 bg-rose-500/20 text-rose-200 border border-rose-400/40 px-3 py-1.5 rounded-xl text-xs font-semibold mt-2">
+ <i data-lucide="info" class="w-4 h-4 text-rose-300 shrink-0 mt-0.5"></i>
+ <div>
+ <span class="font-bold text-rose-300 block text-[10px] uppercase tracking-wide">Raison / Seuils Dépassés :</span>
+ <span id="detailThresholdText" class="text-xs text-rose-100 font-medium">--</span>
  </div>
  </div>
  <div class="flex flex-wrap items-center gap-2 mt-2">
@@ -602,7 +609,7 @@
  </section>
 
  <footer class="mt-8 text-center text-[11px] text-slate-400 no-print pb-4">
- VieScolaire Pro &bull; Version <span class="font-mono font-semibold">6.8 Mobile Pro</span> &bull; Modèle Haute Précision
+ VieScolaire Pro &bull; Version <span class="font-mono font-semibold">6.9 Mobile Pro</span> &bull; Seuils Avancés & Infobulle Alerte CPE
  </footer>
 
  </main>
@@ -614,27 +621,83 @@
 
  <!-- MODALE : RÉGLAGES ALERTE CPE AUTOMATIQUE -->
  <div id="settingsModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs hidden z-50 flex items-center justify-center p-4">
- <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-5 sm:p-6 space-y-4 border border-slate-100">
- <div class="flex justify-between items-center border-b pb-3 border-slate-100">
+ <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full p-5 sm:p-6 space-y-4 border border-slate-100 max-h-[90vh] overflow-y-auto">
+ <div class="flex justify-between items-center border-b pb-3 border-slate-100 sticky top-0 bg-white z-10">
  <div class="flex items-center gap-2">
  <i data-lucide="settings" class="w-5 h-5 text-indigo-600"></i>
- <h3 class="font-bold text-base text-slate-800">Réglages Alerte CPE</h3>
+ <h3 class="font-bold text-base text-slate-800">Réglages Seuils Alerte CPE</h3>
  </div>
  <button onclick="closeModal('settingsModal')" class="text-slate-400 hover:text-slate-600 p-1">
  <i data-lucide="x" class="w-5 h-5"></i>
  </button>
  </div>
  
-<form id="settingsForm" onsubmit="handleSaveSettings(event)" class="space-y-4">
+ <form id="settingsForm" onsubmit="handleSaveSettings(event)" class="space-y-4">
+ <p class="text-xs text-slate-600 font-medium leading-relaxed">
+ Configurez le nombre seuil pour chaque élément de la <b>Synthèse & Compteurs</b> pouvant activer automatiquement le bouton <b>Alerte CPE</b>.
+ L'alerte se déclenchera si au moins un des seuils configurés est atteint ou dépassé (mettez 0 pour désactiver un seuil).
+ </p>
+
+ <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
  <div>
- <label class="block text-xs font-semibold text-slate-700 mb-1">
- Seuil d'absences injustifiées déclenchant l'alerte
- </label>
- <div class="relative">
- <input type="number" id="settingCpeThreshold" min="1" max="100" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm outline-none focus:ring-2 focus:ring-indigo-500 font-semibold text-slate-800">
- <span class="absolute right-3 top-2.5 text-xs text-slate-400 font-medium">absences</span>
+   <label class="block text-[11px] font-bold text-slate-700 mb-1">
+     Absences injustifiées
+   </label>
+   <div class="relative">
+     <input type="number" id="settingCpeThresholdAbsInjustifiees" min="0" max="100" class="w-full p-2 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500">
+     <span class="absolute right-2.5 top-2 text-[10px] text-slate-400">abs. inj.</span>
+   </div>
  </div>
- <p class="text-[11px] text-slate-500 mt-1">L'alerte CPE s'activera automatiquement lorsque l'élève atteint ou dépasse ce nombre d'absences non justifiées.</p>
+
+ <div>
+   <label class="block text-[11px] font-bold text-slate-700 mb-1">
+     Retards
+   </label>
+   <div class="relative">
+     <input type="number" id="settingCpeThresholdRetards" min="0" max="100" class="w-full p-2 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500">
+     <span class="absolute right-2.5 top-2 text-[10px] text-slate-400">retard(s)</span>
+   </div>
+ </div>
+
+ <div>
+   <label class="block text-[11px] font-bold text-slate-700 mb-1">
+     Absences totales
+   </label>
+   <div class="relative">
+     <input type="number" id="settingCpeThresholdAbsences" min="0" max="100" class="w-full p-2 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500">
+     <span class="absolute right-2.5 top-2 text-[10px] text-slate-400">absence(s)</span>
+   </div>
+ </div>
+
+ <div>
+   <label class="block text-[11px] font-bold text-slate-700 mb-1">
+     Heures de retenue / colles
+   </label>
+   <div class="relative">
+     <input type="number" id="settingCpeThresholdRetenues" step="0.5" min="0" max="100" class="w-full p-2 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500">
+     <span class="absolute right-2.5 top-2 text-[10px] text-slate-400">heure(s)</span>
+   </div>
+ </div>
+
+ <div>
+   <label class="block text-[11px] font-bold text-slate-700 mb-1">
+     Emploi du temps bloqué
+   </label>
+   <div class="relative">
+     <input type="number" id="settingCpeThresholdEmploiBloque" min="0" max="100" class="w-full p-2 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500">
+     <span class="absolute right-2.5 top-2 text-[10px] text-slate-400">fois</span>
+   </div>
+ </div>
+
+ <div>
+   <label class="block text-[11px] font-bold text-slate-700 mb-1">
+     Exclusions de cours
+   </label>
+   <div class="relative">
+     <input type="number" id="settingCpeThresholdExclusion" min="0" max="100" class="w-full p-2 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500">
+     <span class="absolute right-2.5 top-2 text-[10px] text-slate-400">exclusion(s)</span>
+   </div>
+ </div>
  </div>
 
  <div class="border-t border-slate-100 pt-3">
@@ -648,7 +711,7 @@
 
  <div class="bg-indigo-50/80 border border-indigo-200 rounded-xl p-3 text-xs text-indigo-800 flex items-start gap-2">
  <i data-lucide="info" class="w-4 h-4 text-indigo-600 shrink-0 mt-0.5"></i>
- <p>Les modifications de seuil et de niveaux seront appliquées immédiatement à la base de données élèves.</p>
+ <p>Les modifications de seuil et de niveaux seront appliquées immédiatement à l'ensemble de la base de données élèves.</p>
  </div>
 
  <div class="flex justify-end gap-2 pt-2">
@@ -945,7 +1008,13 @@
  const SETTINGS_STORAGE_KEY = 'viescolaire_settings_v1';
 
  let appSettings = {
- cpeThreshold: 15,
+ cpeThreshold: 15, // rétrocompatibilité
+ cpeThresholdAbsInjustifiees: 15,
+ cpeThresholdRetards: 3,
+ cpeThresholdAbsences: 10,
+ cpeThresholdRetenues: 2,
+ cpeThresholdEmploiBloque: 1,
+ cpeThresholdExclusion: 1,
  cpeLevels: ['5', '4']
  };
 
@@ -1044,7 +1113,11 @@
  const saved = localStorage.getItem(SETTINGS_STORAGE_KEY);
  if (saved) {
  try {
- appSettings = Object.assign(appSettings, JSON.parse(saved));
+ const parsed = JSON.parse(saved);
+ appSettings = Object.assign(appSettings, parsed);
+ if (appSettings.cpeThresholdAbsInjustifiees === undefined && appSettings.cpeThreshold !== undefined) {
+ appSettings.cpeThresholdAbsInjustifiees = appSettings.cpeThreshold;
+ }
  } catch(e) {
  console.error("Erreur chargement réglages", e);
  }
@@ -1077,13 +1150,62 @@
  }).length;
  }
 
+ function getExceededThresholdsInfo(student) {
+ if (!student) return { hasExceeded: false, reasons: [], summaryText: '' };
+ const events = student.events || [];
+ const retards = events.filter(e => e.type === 'retard').length;
+ const absences = events.filter(e => e.type === 'absence').length;
+ const retenues = events.filter(e => e.type === 'retenue' || getStatutDetailFromMotif(e.motif) === 'Retenue').reduce((sum, e) => sum + getRetenueHours(e), 0);
+ const emploiBloque = events.filter(e => e.type === 'emploi_bloque' || getStatutDetailFromMotif(e.motif) === 'emploi du temps bloqué').length;
+ const exclusion = events.filter(e => e.type === 'exclusion' || getStatutDetailFromMotif(e.motif) === 'Exclusion de cours').length;
+ const absInjustifiees = countUnjustifiedAbsences(student);
+
+ const reasons = [];
+
+ const tAbsInj = parseInt(appSettings.cpeThresholdAbsInjustifiees ?? appSettings.cpeThreshold, 10);
+ if (tAbsInj > 0 && absInjustifiees >= tAbsInj) {
+ reasons.push(`${absInjustifiees} abs. injustifiée(s) (seuil: ${tAbsInj})`);
+ }
+
+ const tRetards = parseInt(appSettings.cpeThresholdRetards, 10);
+ if (tRetards > 0 && retards >= tRetards) {
+ reasons.push(`${retards} retard(s) (seuil: ${tRetards})`);
+ }
+
+ const tAbs = parseInt(appSettings.cpeThresholdAbsences, 10);
+ if (tAbs > 0 && absences >= tAbs) {
+ reasons.push(`${absences} absence(s) (seuil: ${tAbs})`);
+ }
+
+ const tRetenues = parseFloat(appSettings.cpeThresholdRetenues);
+ if (tRetenues > 0 && retenues >= tRetenues) {
+ const formattedRet = Number.isInteger(retenues) ? retenues : retenues.toFixed(1);
+ reasons.push(`${formattedRet}h de retenue(s) (seuil: ${tRetenues}h)`);
+ }
+
+ const tEdt = parseInt(appSettings.cpeThresholdEmploiBloque, 10);
+ if (tEdt > 0 && emploiBloque >= tEdt) {
+ reasons.push(`${emploiBloque} EDT bloqué(s) (seuil: ${tEdt})`);
+ }
+
+ const tExcl = parseInt(appSettings.cpeThresholdExclusion, 10);
+ if (tExcl > 0 && exclusion >= tExcl) {
+ reasons.push(`${exclusion} exclusion(s) de cours (seuil: ${tExcl})`);
+ }
+
+ return {
+ hasExceeded: reasons.length > 0,
+ reasons: reasons,
+ summaryText: reasons.join(', ')
+ };
+ }
+
  function updateAutoCpeAlerts() {
  if (!Array.isArray(students)) return;
- const threshold = parseInt(appSettings.cpeThreshold, 10) || 15;
  students.forEach(student => {
  if (isEligibleForAutoCpe(student.classe)) {
- const count = countUnjustifiedAbsences(student);
- if (count >= threshold) {
+ const info = getExceededThresholdsInfo(student);
+ if (info.hasExceeded) {
  student.alerteCPE = true;
  } else {
  student.alerteCPE = false;
@@ -1247,7 +1369,12 @@
  // =========================================================
  function openSettingsModal() {
  loadSettings();
- document.getElementById('settingCpeThreshold').value = appSettings.cpeThreshold || 15;
+ document.getElementById('settingCpeThresholdAbsInjustifiees').value = appSettings.cpeThresholdAbsInjustifiees ?? appSettings.cpeThreshold ?? 15;
+ document.getElementById('settingCpeThresholdRetards').value = appSettings.cpeThresholdRetards ?? 3;
+ document.getElementById('settingCpeThresholdAbsences').value = appSettings.cpeThresholdAbsences ?? 10;
+ document.getElementById('settingCpeThresholdRetenues').value = appSettings.cpeThresholdRetenues ?? 2;
+ document.getElementById('settingCpeThresholdEmploiBloque').value = appSettings.cpeThresholdEmploiBloque ?? 1;
+ document.getElementById('settingCpeThresholdExclusion').value = appSettings.cpeThresholdExclusion ?? 1;
  populateSettingsLevelsUI();
  document.getElementById('settingsModal').classList.remove('hidden');
  lucide.createIcons();
@@ -1291,8 +1418,18 @@
 
  function handleSaveSettings(e) {
  e.preventDefault();
- const thresholdVal = parseInt(document.getElementById('settingCpeThreshold').value, 10);
- appSettings.cpeThreshold = isNaN(thresholdVal) || thresholdVal < 1 ? 15 : thresholdVal;
+ const getVal = (id, defaultVal) => {
+ const val = parseFloat(document.getElementById(id).value);
+ return isNaN(val) || val < 0 ? defaultVal : val;
+ };
+
+ appSettings.cpeThresholdAbsInjustifiees = getVal('settingCpeThresholdAbsInjustifiees', 15);
+ appSettings.cpeThreshold = appSettings.cpeThresholdAbsInjustifiees;
+ appSettings.cpeThresholdRetards = getVal('settingCpeThresholdRetards', 0);
+ appSettings.cpeThresholdAbsences = getVal('settingCpeThresholdAbsences', 0);
+ appSettings.cpeThresholdRetenues = getVal('settingCpeThresholdRetenues', 0);
+ appSettings.cpeThresholdEmploiBloque = getVal('settingCpeThresholdEmploiBloque', 0);
+ appSettings.cpeThresholdExclusion = getVal('settingCpeThresholdExclusion', 0);
 
  const checkboxes = document.querySelectorAll('input[name="cpeLevelCheckbox"]:checked');
  appSettings.cpeLevels = Array.from(checkboxes).map(cb => cb.value);
@@ -1306,7 +1443,7 @@
  updateRecapBadges();
  }
  closeModal('settingsModal');
- alert("Réglages enregistrés avec succès.");
+ alert("Réglages des seuils enregistrés avec succès.");
  }
 
  // =========================================================
@@ -1318,11 +1455,11 @@
  const recapSelect = document.getElementById('recapClassSelect');
  const classes = [...new Set(students.map(s => s.classe))].filter(Boolean).sort();
  
-select.innerHTML = '<option value="">Toutes les classes</option>';
+ select.innerHTML = '<option value="">Toutes les classes</option>';
  exportSelect.innerHTML = '<option value="ALL">Toutes les classes</option>';
  if (recapSelect) recapSelect.innerHTML = '<option value="ALL">Toutes les classes</option>';
  
-classes.forEach(c => {
+ classes.forEach(c => {
  const opt = document.createElement('option');
  opt.value = c;
  opt.textContent = c;
@@ -1368,6 +1505,8 @@ classes.forEach(c => {
  const isAlerteCpe = !!student.alerteCPE;
  const isDocNonRendu = !!student.docNonRendu;
 
+ const thresholdInfo = getExceededThresholdsInfo(student);
+
  const safeNom = sanitize(student.nom ? student.nom.toUpperCase() : '');
  const safePrenom = sanitize(student.prenom);
  const safeClasse = sanitize(student.classe);
@@ -1376,7 +1515,7 @@ classes.forEach(c => {
  const safeId = sanitize(student.id);
 
  const card = document.createElement('div');
- card.className = `rounded-2xl p-4 border shadow-2xs hover:shadow-md transition relative flex flex-col justify-between group ${isNoExit ? 'card-no-exit' : 'bg-white border-slate-200/90'}`;
+ card.className = `rounded-2xl p-4 sm:p-5 border shadow-2xs hover:shadow-md transition relative flex flex-col justify-between group min-h-[230px] ${isNoExit ? 'card-no-exit' : 'bg-white border-slate-200/90'}`;
 
  const formattedRetenues = Number.isInteger(retenues) ? retenues : retenues.toFixed(1);
 
@@ -1398,6 +1537,22 @@ classes.forEach(c => {
  <i data-lucide="file-warning" class="w-3 h-3"></i> DOC
  </span>
  ` : ''}
+ ${thresholdInfo.hasExceeded ? `
+ <div class="relative group/tooltip inline-block">
+ <span class="inline-flex items-center gap-1 bg-rose-100 text-rose-800 border border-rose-300 px-2 py-0.5 rounded-full text-[10px] font-bold cursor-help shadow-2xs">
+ <i data-lucide="info" class="w-3 h-3 text-rose-600"></i>
+ <span>Détails seuil</span>
+ </span>
+ <div class="absolute left-0 sm:right-0 sm:left-auto mt-1 z-30 hidden group-hover/tooltip:block w-64 p-2.5 bg-slate-900 text-white text-[11px] rounded-xl shadow-xl border border-slate-700 leading-tight">
+ <p class="font-bold text-amber-300 mb-1 flex items-center gap-1">
+ <i data-lucide="alert-circle" class="w-3.5 h-3.5 text-amber-400"></i> Raison / Seuils dépassés :
+ </p>
+ <ul class="list-disc list-inside space-y-1 text-slate-200">
+ ${thresholdInfo.reasons.map(r => `<li>${sanitize(r)}</li>`).join('')}
+ </ul>
+ </div>
+ </div>
+ ` : ''}
  </div>
  <div class="flex items-center gap-1.5 mt-1">
  <span class="inline-block bg-slate-100 text-slate-700 font-semibold text-[11px] px-2 py-0.5 rounded-md border border-slate-200">${safeClasse}</span>
@@ -1414,6 +1569,16 @@ classes.forEach(c => {
  </div>
  ` : ''}
  </div>
+
+ ${thresholdInfo.hasExceeded ? `
+ <div class="mt-2.5 p-2 bg-rose-50/90 border border-rose-200/90 rounded-xl text-[11px] text-rose-900 flex items-start gap-1.5">
+ <i data-lucide="info" class="w-3.5 h-3.5 text-rose-600 shrink-0 mt-0.5"></i>
+ <div class="flex-1 leading-snug">
+ <span class="font-bold text-rose-800 block text-[10px] uppercase tracking-wide">Seuil(s) atteint(s) :</span>
+ <span class="text-xs font-semibold text-rose-950">${sanitize(thresholdInfo.summaryText)}</span>
+ </div>
+ </div>
+ ` : ''}
 
  <div class="mt-3.5 pt-2.5 border-t ${isNoExit ? 'border-red-200/60' : 'border-slate-100'} flex flex-col gap-2 text-xs">
  
@@ -1551,7 +1716,7 @@ classes.forEach(c => {
  function setHistoryTab(cat) {
  currentHistoryFilter = cat;
  
-const tabs = document.querySelectorAll('.hist-tab');
+ const tabs = document.querySelectorAll('.hist-tab');
  tabs.forEach(t => {
  t.className = "hist-tab shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition text-slate-600 hover:bg-slate-200/70";
  });
@@ -1617,10 +1782,10 @@ const tabs = document.querySelectorAll('.hist-tab');
  events.forEach(ev => {
  const tr = document.createElement('tr');
  
-let badgeClass = "bg-slate-100 text-slate-700";
+ let badgeClass = "bg-slate-100 text-slate-700";
  let typeLabel = ev.type;
  
-if (ev.type === 'retard') { badgeClass = "bg-amber-100 text-amber-800"; typeLabel = "RETARD"; }
+ if (ev.type === 'retard') { badgeClass = "bg-amber-100 text-amber-800"; typeLabel = "RETARD"; }
  else if (ev.type === 'absence') { badgeClass = "bg-rose-100 text-rose-800"; typeLabel = "ABSENCE"; }
  else if (ev.type === 'retenue') { badgeClass = "bg-purple-100 text-purple-800"; typeLabel = ev.pronoteType ? `RETENUE (${ev.pronoteType.toUpperCase()})` : "RETENUE"; }
  else if (ev.type === 'emploi_bloque') { badgeClass = "bg-amber-100 text-amber-900"; typeLabel = "EMPLOI DU TEMPS BLOQUÉ"; }
@@ -1772,23 +1937,24 @@ if (ev.type === 'retard') { badgeClass = "bg-amber-100 text-amber-800"; typeLabe
  const catEvents = (student.events || []).filter(matchesCat);
  const isAlerteCpe = !!student.alerteCPE;
  const isDocNonRendu = !!student.docNonRendu;
+ const thresholdInfo = getExceededThresholdsInfo(student);
  const safeId = sanitize(student.id);
 
  const card = document.createElement('div');
- card.className = "bg-white rounded-2xl p-4 border border-slate-200/90 shadow-2xs hover:shadow-md transition flex flex-col justify-between";
+ card.className = "bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-2xs hover:shadow-md transition flex flex-col justify-between";
 
  let listHtml = catEvents.map(e => {
  const dateStr = extractDateFromText(e.motif) || e.date;
  const parsed = new Date(dateStr);
  const formattedDate = !isNaN(parsed.getTime()) ? parsed.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) : '--';
  
-let detail = sanitize(e.motif || '');
+ let detail = sanitize(e.motif || '');
  if (e.pronoteType) detail = `[${sanitize(e.pronoteType)}] ${detail}`;
  
-const isJust = e.justified === 'Oui' || /\boui\b/i.test(e.motif || '');
+ const isJust = e.justified === 'Oui' || /\boui\b/i.test(e.motif || '');
  if (e.type === 'absence' || e.type === 'retard') detail += ` (${isJust ? 'Justifié' : 'Non justifié'})`;
  
-if (e.type === 'retenue' || getStatutDetailFromMotif(e.motif) === 'Retenue') {
+ if (e.type === 'retenue' || getStatutDetailFromMotif(e.motif) === 'Retenue') {
  const hours = getRetenueHours(e);
  const formattedHours = Number.isInteger(hours) ? hours : hours.toFixed(1);
  detail += ` (${formattedHours}h)`;
@@ -1824,6 +1990,16 @@ if (e.type === 'retenue' || getStatutDetailFromMotif(e.motif) === 'Retenue') {
  ${catEvents.length}
  </span>
  </div>
+
+ ${thresholdInfo.hasExceeded ? `
+ <div class="mt-2 p-2 bg-rose-50/90 border border-rose-200/90 rounded-xl text-[11px] text-rose-900 flex items-start gap-1.5">
+ <i data-lucide="info" class="w-3.5 h-3.5 text-rose-600 shrink-0 mt-0.5"></i>
+ <div class="flex-1 leading-snug">
+ <span class="font-bold text-rose-800 block text-[10px] uppercase tracking-wide">Seuil(s) atteint(s) :</span>
+ <span class="text-[11px] font-semibold text-rose-950">${sanitize(thresholdInfo.summaryText)}</span>
+ </div>
+ </div>
+ ` : ''}
 
  <!-- BOUTONS INTERRUPTEURS CPE & DOC SUR CARTE RÉCAP -->
  <div class="grid grid-cols-2 gap-1.5 bg-slate-50 p-1.5 rounded-xl border border-slate-200/70 my-2">
@@ -1888,6 +2064,7 @@ if (e.type === 'retenue' || getStatutDetailFromMotif(e.motif) === 'Retenue') {
 
  const isAlerteCpe = !!student.alerteCPE;
  const isDocNonRendu = !!student.docNonRendu;
+ const thresholdInfo = getExceededThresholdsInfo(student);
  const safeId = sanitize(student.id);
 
  const safeNom = sanitize(student.nom ? student.nom.toUpperCase() : '');
@@ -1896,7 +2073,7 @@ if (e.type === 'retenue' || getStatutDetailFromMotif(e.motif) === 'Retenue') {
  const formattedRetenues = Number.isInteger(retenues) ? retenues : retenues.toFixed(1);
 
  const card = document.createElement('div');
- card.className = "bg-white rounded-2xl p-4 border border-slate-200/90 shadow-2xs hover:shadow-md transition flex flex-col justify-between";
+ card.className = "bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-2xs hover:shadow-md transition flex flex-col justify-between";
 
  card.innerHTML = `
  <div>
@@ -1921,6 +2098,16 @@ if (e.type === 'retenue' || getStatutDetailFromMotif(e.motif) === 'Retenue') {
  ${events.length} evt(s)
  </span>
  </div>
+
+ ${thresholdInfo.hasExceeded ? `
+ <div class="mt-2 p-2 bg-rose-50/90 border border-rose-200/90 rounded-xl text-[11px] text-rose-900 flex items-start gap-1.5">
+ <i data-lucide="info" class="w-3.5 h-3.5 text-rose-600 shrink-0 mt-0.5"></i>
+ <div class="flex-1 leading-snug">
+ <span class="font-bold text-rose-800 block text-[10px] uppercase tracking-wide">Seuil(s) atteint(s) :</span>
+ <span class="text-[11px] font-semibold text-rose-950">${sanitize(thresholdInfo.summaryText)}</span>
+ </div>
+ </div>
+ ` : ''}
 
  <!-- BOUTONS INTERRUPTEURS CPE & DOC SUR CARTE RÉCAP PAR CLASSE -->
  <div class="grid grid-cols-2 gap-1.5 bg-slate-50 p-1.5 rounded-xl border border-slate-200/70 my-2">
@@ -1982,25 +2169,25 @@ if (e.type === 'retenue' || getStatutDetailFromMotif(e.motif) === 'Retenue') {
  function setQuickFilter(type) {
  currentQuickFilter = type;
  
-document.getElementById('btnFilterAll').className = type === 'all' 
-? "px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-600 text-white shadow-2xs flex items-center gap-1.5 transition" 
-: "px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200 flex items-center gap-1.5 transition";
+ document.getElementById('btnFilterAll').className = type === 'all' 
+ ? "px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-600 text-white shadow-2xs flex items-center gap-1.5 transition" 
+ : "px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200 flex items-center gap-1.5 transition";
 
  document.getElementById('btnFilterCPE').className = type === 'cpe' 
-? "px-3 py-1.5 rounded-xl text-xs font-semibold bg-rose-600 text-white shadow-2xs flex items-center gap-1.5 transition" 
-: "px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200 hover:bg-rose-50 hover:text-rose-700 flex items-center gap-1.5 transition";
+ ? "px-3 py-1.5 rounded-xl text-xs font-semibold bg-rose-600 text-white shadow-2xs flex items-center gap-1.5 transition" 
+ : "px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200 hover:bg-rose-50 hover:text-rose-700 flex items-center gap-1.5 transition";
 
  document.getElementById('btnFilterDoc').className = type === 'doc' 
-? "px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-500 text-white shadow-2xs flex items-center gap-1.5 transition" 
-: "px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200 hover:bg-amber-50 hover:text-amber-700 flex items-center gap-1.5 transition";
+ ? "px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-500 text-white shadow-2xs flex items-center gap-1.5 transition" 
+ : "px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200 hover:bg-amber-50 hover:text-amber-700 flex items-center gap-1.5 transition";
 
  document.getElementById('btnFilterCanteen').className = type === 'canteen' 
-? "px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-600 text-white shadow-2xs flex items-center gap-1.5 transition" 
-: "px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200 hover:bg-emerald-50 hover:text-emerald-700 flex items-center gap-1.5 transition";
+ ? "px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-600 text-white shadow-2xs flex items-center gap-1.5 transition" 
+ : "px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200 hover:bg-emerald-50 hover:text-emerald-700 flex items-center gap-1.5 transition";
 
  document.getElementById('btnFilterNoExit').className = type === 'no-exit' 
-? "px-3 py-1.5 rounded-xl text-xs font-semibold bg-rose-600 text-white shadow-2xs flex items-center gap-1.5 transition" 
-: "px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200 hover:bg-rose-50 hover:text-rose-700 flex items-center gap-1.5 transition";
+ ? "px-3 py-1.5 rounded-xl text-xs font-semibold bg-rose-600 text-white shadow-2xs flex items-center gap-1.5 transition" 
+ : "px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200 hover:bg-rose-50 hover:text-rose-700 flex items-center gap-1.5 transition";
 
  filterStudents();
  }
@@ -2016,7 +2203,7 @@ document.getElementById('btnFilterAll').className = type === 'all'
  const badge = (student.badgeCantine || '').toLowerCase();
  const repere = (student.badgeRepere || '').toLowerCase();
  
-const matchesSearch = fullName.includes(query) || reverseFullName.includes(query) || (student.classe || '').toLowerCase().includes(query) || badge.includes(query) || repere.includes(query);
+ const matchesSearch = fullName.includes(query) || reverseFullName.includes(query) || (student.classe || '').toLowerCase().includes(query) || badge.includes(query) || repere.includes(query);
  const matchesClass = selectedClass === "" || student.classe === selectedClass;
 
  let matchesQuick = true;
@@ -2055,7 +2242,7 @@ const matchesSearch = fullName.includes(query) || reverseFullName.includes(query
  document.getElementById('toggleModalTitle').textContent = "Modifier statut cantine";
  document.getElementById('toggleModalMessage').textContent = `Passer ${student.nom} ${student.prenom} en : ${newStatus} ?`;
  
-pendingToggleAction = () => {
+ pendingToggleAction = () => {
  student.regime = newStatus;
  saveStorage();
  filterStudents();
@@ -2115,11 +2302,11 @@ pendingToggleAction = () => {
 
  document.getElementById('detailName').textContent = `${(student.nom || '').toUpperCase()} ${student.prenom || ''}`;
  
-const initP = student.prenom && student.prenom.length > 0 ? student.prenom[0] : '-';
+ const initP = student.prenom && student.prenom.length > 0 ? student.prenom[0] : '-';
  const initN = student.nom && student.nom.length > 0 ? student.nom[0] : '-';
  document.getElementById('detailInitials').textContent = `${initP}${initN}`;
  
-document.getElementById('detailClass').textContent = student.classe || '';
+ document.getElementById('detailClass').textContent = student.classe || '';
  document.getElementById('detailRegime').textContent = student.regime || '';
  document.getElementById('detailProf').textContent = student.profPrincipal || 'Non renseigné';
 
@@ -2128,11 +2315,11 @@ document.getElementById('detailClass').textContent = student.classe || '';
  const canteenIndicator = document.getElementById('detailCanteenIndicator');
  const qrBox = document.getElementById('detailCanteenQRBox');
  
-if (student.regime === 'Demi-pensionnaire') {
+ if (student.regime === 'Demi-pensionnaire') {
  canteenIndicator.classList.remove('hidden');
  canteenIndicator.classList.add('flex');
  
-qrBox.classList.remove('hidden');
+ qrBox.classList.remove('hidden');
  qrBox.classList.add('flex');
 
  document.getElementById('canteenBadgeInput').value = student.badgeCantine || '';
@@ -2183,6 +2370,19 @@ qrBox.classList.remove('hidden');
  } else {
  docBadge.classList.add('hidden');
  docBadge.classList.remove('flex');
+ }
+
+ const thresholdBox = document.getElementById('detailThresholdBox');
+ const thresholdText = document.getElementById('detailThresholdText');
+ const info = getExceededThresholdsInfo(student);
+
+ if (info.hasExceeded && thresholdBox && thresholdText) {
+ thresholdBox.classList.remove('hidden');
+ thresholdBox.classList.add('flex');
+ thresholdText.textContent = info.summaryText;
+ } else if (thresholdBox) {
+ thresholdBox.classList.add('hidden');
+ thresholdBox.classList.remove('flex');
  }
 
  const btnCpe = document.getElementById('detailToggleCpeBtn');
@@ -2242,7 +2442,7 @@ qrBox.classList.remove('hidden');
  const container = document.getElementById('qrcodeCanvas');
  container.innerHTML = '';
  
-const qrContent = val && val.trim() ? val.trim() : 'SANS-BADGE';
+ const qrContent = val && val.trim() ? val.trim() : 'SANS-BADGE';
 
  qrCodeObj = new QRCode(container, {
  text: qrContent,
@@ -2331,14 +2531,14 @@ const qrContent = val && val.trim() ? val.trim() : 'SANS-BADGE';
  function openAddEventModal(type) {
  if (!selectedStudentId) return;
  
-document.getElementById('eventTypeInput').value = type;
+ document.getElementById('eventTypeInput').value = type;
  let title = type.toUpperCase();
  if (type === 'emploi_bloque') title = "EMPLOI DU TEMPS BLOQUÉ";
  if (type === 'exclusion') title = "EXCLUSION DE COURS";
  if (type === 'abs_injustifiee') title = "ABSENCE INJUSTIFIÉE";
  document.getElementById('eventModalTitle').textContent = `Ajouter : ${title}`;
  
-const now = new Date();
+ const now = new Date();
  now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
  document.getElementById('eventDateInput').value = now.toISOString().slice(0, 16);
 
@@ -2374,7 +2574,7 @@ const now = new Date();
  newEv.justified = (justifiedSelect === 'Oui' || hasOui) ? 'Oui' : 'Non';
  }
  
-if (type === 'retenue') {
+ if (type === 'retenue') {
  newEv.duration = parseInt(document.getElementById('eventDurationInput').value) || getRetenueHours(newEv);
  }
  if (type === 'abs_injustifiee') newEv.pronoteType = document.getElementById('eventPronoteTypeInput').value;
@@ -2441,7 +2641,7 @@ if (type === 'retenue') {
  function switchRecapTab(cat) {
  currentRecapCategory = cat;
  
-const tabs = document.querySelectorAll('.recap-tab');
+ const tabs = document.querySelectorAll('.recap-tab');
  tabs.forEach(t => {
  t.className = "recap-tab shrink-0 px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition text-slate-600 hover:bg-slate-100";
  });
@@ -2620,7 +2820,7 @@ const tabs = document.querySelectorAll('.recap-tab');
  const regime = r.Regime || r.regime || 'Demi-pensionnaire';
  const autoris = r.Autorisation || r.autorisation || 'Oui';
  
-students.push({
+ students.push({
  id: generateUUID(),
  nom: String(nom).trim().toUpperCase(),
  prenom: String(prenom).trim(),
@@ -3119,7 +3319,7 @@ students.push({
  doc.setFontSize(16);
  doc.text(`Rapport Vie Scolaire - ${selectedClass === 'ALL' ? 'Toutes les classes' : selectedClass}`, 14, 15);
  
-doc.setFontSize(9);
+ doc.setFontSize(9);
  doc.setFont('Helvetica', 'normal');
  doc.text(`Généré le : ${new Date().toLocaleDateString('fr-FR')} - Total élèves : ${targetStudents.length}`, 14, 21);
 
@@ -3267,7 +3467,7 @@ doc.setFontSize(9);
  const parsed = new Date(dateStr);
  const formattedDate = !isNaN(parsed.getTime()) ? parsed.toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ev.date;
  
-let hDetail = ev.type.toUpperCase();
+ let hDetail = ev.type.toUpperCase();
  if (ev.type === 'retenue') {
  const h = getRetenueHours(ev);
  hDetail = `RETENUE (${Number.isInteger(h) ? h : h.toFixed(1)}h)`;
@@ -3334,7 +3534,7 @@ let hDetail = ev.type.toUpperCase();
  const parsed = new Date(dateStr);
  const formattedDate = !isNaN(parsed.getTime()) ? parsed.toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ev.date;
  
-let detail = ev.type.toUpperCase();
+ let detail = ev.type.toUpperCase();
  if (ev.type === 'retenue') {
  const h = getRetenueHours(ev);
  detail = `RETENUE (${Number.isInteger(h) ? h : h.toFixed(1)}h)`;
