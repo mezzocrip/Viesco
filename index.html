@@ -176,7 +176,8 @@
  <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
  <i data-lucide="search" class="w-4 h-4"></i>
  </div>
- <input type="text" id="searchInput" oninput="filterStudents()" placeholder="Nom, prénom, classe ou badge..." class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition">
+ <input type="text" id="searchInput" list="studentSuggestions" oninput="filterStudents()" placeholder="Nom, prénom, classe ou badge..." class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition">
+ <datalist id="studentSuggestions"></datalist>
  </div>
 
  <div class="flex flex-wrap items-center gap-2 justify-start lg:justify-end">
@@ -1334,6 +1335,7 @@
  loadSettings();
  loadStorage();
  populateClassFilter();
+ populateStudentSuggestions();
  renderStudentsGrid();
  lucide.createIcons();
  };
@@ -1362,6 +1364,25 @@
  function saveStorage() {
  updateAutoCpeAlerts();
  localStorage.setItem(STORAGE_KEY, JSON.stringify(students));
+ populateStudentSuggestions();
+ }
+
+ function populateStudentSuggestions() {
+ const datalist = document.getElementById('studentSuggestions');
+ if (!datalist) return;
+ datalist.innerHTML = '';
+ students.forEach(s => {
+ const nomPrenom = `${s.nom ? s.nom.toUpperCase() : ''} ${s.prenom || ''}`.trim();
+ const prenomNom = `${s.prenom || ''} ${s.nom ? s.nom.toUpperCase() : ''}`.trim();
+ 
+ [nomPrenom, prenomNom].forEach(val => {
+ if (val && !Array.from(datalist.options).some(opt => opt.value === val)) {
+ const opt = document.createElement('option');
+ opt.value = val;
+ datalist.appendChild(opt);
+ }
+ });
+ });
  }
 
  // =========================================================
