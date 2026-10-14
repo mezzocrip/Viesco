@@ -2147,7 +2147,7 @@
  </div>
  <div class="bg-rose-50/70 p-2 rounded-xl border border-rose-200/60">
  <span class="block text-[10px] text-rose-900 font-semibold">Exclusions</span>
- <span class="font-extrabold text-rose-800 text-sm">${exclusions}</span>
+ <span class="font-extrabold text-rose-700 text-sm">${exclusions}</span>
  </div>
  <div class="bg-red-50 p-2 rounded-xl border border-red-200/80">
  <span class="block text-[10px] text-red-800 font-semibold">Abs. Injustifiées</span>
@@ -3063,9 +3063,33 @@
  doc.setDrawColor(190, 18, 60);
  doc.line(14, 43, 196, 43);
 
+ let currentY = 47;
+
+ // AFFICHAGE DES DÉTAILS DE L'ALERTE CPE / SEUILS DÉPASSÉS
+ const thresholdInfo = getExceededThresholdsInfo(s);
+ if (thresholdInfo.hasExceeded) {
+ doc.setFillColor(254, 242, 242);
+ doc.setDrawColor(252, 165, 165);
+ doc.setLineWidth(0.3);
+ doc.roundedRect(14, currentY, 182, 14, 2, 2, 'FD');
+
+ doc.setFont('Helvetica', 'bold');
+ doc.setFontSize(9);
+ doc.setTextColor(159, 18, 57);
+ doc.text("DÉTAIL DE L'ALERTE CPE (RAISON / SEUILS DÉPASSÉS) :", 17, currentY + 5);
+
+ doc.setFont('Helvetica', 'normal');
+ doc.setFontSize(8.5);
+ doc.setTextColor(136, 19, 55);
+ const splitText = doc.splitTextToSize(thresholdInfo.summaryText, 176);
+ doc.text(splitText, 17, currentY + 10);
+
+ currentY += 18;
+ }
+
  // TABLEAU RÉCAPITULATIF DES COMPTEURS
  doc.autoTable({
- startY: 47,
+ startY: currentY,
  head: [['Retards', 'Absences Total', 'Abs. Injustifiées', 'Heures Colles', 'EDT Bloqué', 'Exclusions']],
  body: [[retards, absences, absInjustifiees, `${formattedRetenues} h`, emploiBloque, exclusions]],
  theme: 'grid',
@@ -3073,7 +3097,7 @@
  styles: { fontSize: 8.5, halign: 'center', cellPadding: 2.5 }
  });
 
- let currentY = doc.lastAutoTable.finalY + 8;
+ currentY = doc.lastAutoTable.finalY + 8;
 
  doc.setFont('Helvetica', 'bold');
  doc.setFontSize(11);
