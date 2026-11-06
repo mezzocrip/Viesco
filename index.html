@@ -1486,6 +1486,7 @@
  const item = document.createElement('div');
  item.className = "flex items-center justify-between p-3 hover:bg-slate-50 cursor-pointer transition";
  item.onclick = () => {
+ clearSearch();
  openStudentDetail(safeId);
  hideSearchDropdown();
  };
