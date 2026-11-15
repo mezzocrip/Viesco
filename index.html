@@ -41,18 +41,6 @@
  scrollbar-width: none;
  }
 
- /* Animation d'ouverture des détails dans le Bilan */
- .accordion-content {
- transition: max-height 0.3s ease-out, opacity 0.2s ease-out;
- max-height: 0;
- overflow: hidden;
- opacity: 0;
- }
- .accordion-content.open {
- max-height: 500px;
- opacity: 1;
- }
-
  @media print {
  .no-print { display: none !important; }
  .print-only { display: block !important; }
@@ -60,11 +48,6 @@
  .shadow-lg, .shadow-md, .shadow-sm { box-shadow: none !important; }
  .border { border-color: #cbd5e1 !important; }
  .print-break-inside-avoid { break-inside: avoid; }
- .accordion-content {
- max-height: none !important;
- opacity: 1 !important;
- display: block !important;
- }
  }
  
 .page-fade {
@@ -668,10 +651,6 @@
  <select id="bilanClassSelect" onchange="renderBilanView()" class="bg-slate-50 border border-slate-300 text-slate-800 text-xs sm:text-sm rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-teal-500 font-semibold">
  <option value="ALL">Toutes les classes</option>
  </select>
- <button onclick="toggleAllBilanDetails()" id="btnToggleAllBilan" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 transition">
- <i data-lucide="chevrons-down-up" class="w-4 h-4"></i>
- <span>Tout déplier</span>
- </button>
  <button onclick="window.print()" class="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium text-white bg-slate-900 hover:bg-slate-800 shadow-xs transition">
  <i data-lucide="printer" class="w-4 h-4"></i>
  <span>Imprimer / PDF</span>
@@ -869,9 +848,9 @@
  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
  <div>
  <h3 id="bilan-students-title" class="text-xs font-bold uppercase tracking-wider text-slate-500">
- 4. Détail Individuel des Élèves (<span id="bilanVisibleCount">0</span>/<span id="bilanTotalCount">0</span>)
+ 4. Synthèse Individuelle des Élèves (<span id="bilanVisibleCount">0</span>/<span id="bilanTotalCount">0</span>)
  </h3>
- <p class="text-xs text-slate-400 mt-0.5">Touchez ou cliquez sur un élève pour afficher ses observations détaillées issues de PRONOTE.</p>
+ <p class="text-xs text-slate-400 mt-0.5">Touchez ou cliquez sur un élève pour ouvrir sa fiche détaillée.</p>
  </div>
  </div>
 
@@ -885,7 +864,7 @@
  type="text" 
  id="bilanSearchInput" 
  oninput="handleBilanSearch()"
- placeholder="Rechercher un élève (nom, prénom, motif PRONOTE...)" 
+ placeholder="Rechercher un élève (nom, prénom, classe, régime...)" 
  class="w-full pl-10 pr-9 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white transition"
  >
  <button id="bilanClearSearch" onclick="clearBilanSearch()" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
@@ -1373,8 +1352,6 @@
  let bilanFilter = 'all';
  let bilanSearch = '';
  let bilanSort = 'abs_desc';
- let bilanExpandedIds = new Set();
- let bilanAllExpanded = false;
 
  const STANDARD_LEVELS = [
  { code: '6', label: '6ème' },
@@ -2722,32 +2699,6 @@
  const edtBlq = events.filter(e => e.type === 'emploi_bloque' || getStatutDetailFromMotif(e.motif) === 'emploi du temps bloqué').length;
  const excl = events.filter(e => e.type === 'exclusion' || getStatutDetailFromMotif(e.motif) === 'Exclusion de cours').length;
 
- // Extraction des motifs et tags à partir des données PRONOTE importées
- let detailsList = [];
- let tagsSet = new Set();
-
- events.forEach(ev => {
- const dateStr = extractDateFromText(ev.motif) || ev.date;
- const parsed = new Date(dateStr);
- const dFmt = !isNaN(parsed.getTime()) ? parsed.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) : '';
- const cleanMotif = (ev.motif || '').trim();
- if (cleanMotif) {
- detailsList.push(dFmt ? `[${dFmt}] ${cleanMotif}` : cleanMotif);
- }
- });
-
- if (absInjust >= 15 || excl > 0 || edtBlq > 0) tagsSet.add("Critique");
- if (excl > 0) tagsSet.add("Exclusion");
- if (edtBlq > 0) tagsSet.add("EDT Bloqué");
- if (colles > 0) tagsSet.add("Retenues");
- if (retards >= 2) tagsSet.add("Retards");
- if (abs > 0 && absInjust === 0) tagsSet.add("0 Injustifiée");
- if (!s.alerteCPE && abs === 0 && colles === 0 && excl === 0 && edtBlq === 0 && retards === 0) tagsSet.add("Exemplaire");
-
- const detailsSummary = detailsList.length > 0
- ? detailsList.join(' • ')
- : "Aucun incident ni absence enregistré dans PRONOTE.";
-
  return {
  id: s.id,
  name: `${(s.nom || '').toUpperCase()} ${s.prenom || ''}`.trim(),
@@ -2761,9 +2712,7 @@
  absJust,
  colles,
  edtBlq,
- excl,
- details: detailsSummary,
- tags: Array.from(tagsSet)
+ excl
  };
  }
 
@@ -2971,7 +2920,6 @@
  let filtered = mappedStudents.filter(student => {
  const searchLower = bilanSearch.toLowerCase();
  const matchesSearch = student.name.toLowerCase().includes(searchLower) || 
- student.details.toLowerCase().includes(searchLower) ||
  student.classe.toLowerCase().includes(searchLower) ||
  student.regime.toLowerCase().includes(searchLower);
  if (!matchesSearch) return false;
@@ -3003,7 +2951,6 @@
 
  container.innerHTML = filtered.map(s => {
  const safeId = sanitize(s.id);
- const isExpanded = bilanExpandedIds.has(s.id);
  const isExemplaire = !s.alerteCPE && s.absInjust === 0 && s.colles === 0 && s.excl === 0 && s.edtBlq === 0;
  const formattedColles = Number.isInteger(s.colles) ? `${s.colles}h` : `${s.colles.toFixed(1)}h`;
  
@@ -3017,15 +2964,14 @@
  }
 
  return `
- <div class="bg-white rounded-2xl border ${borderClass} shadow-2xs hover:shadow-md transition-all duration-200 print-break-inside-avoid">
- <!-- Zone cliquable principale -->
- <div onclick="toggleBilanStudent('${safeId}')" class="p-4 cursor-pointer select-none flex flex-col xl:flex-row xl:items-center justify-between gap-3.5">
+ <div onclick="openStudentDetail('${safeId}')" class="bg-white rounded-2xl border ${borderClass} shadow-2xs hover:shadow-md transition-all duration-200 print-break-inside-avoid cursor-pointer">
+ <div class="p-4 flex flex-col xl:flex-row xl:items-center justify-between gap-3.5">
  
  <!-- Identité & Badges -->
- <div class="flex items-start justify-between gap-2 xl:w-1/3">
+ <div class="flex items-start justify-between gap-2 xl:w-5/12">
  <div>
  <div class="flex flex-wrap items-center gap-2">
- <h4 class="font-bold text-slate-900 text-sm sm:text-base hover:text-indigo-600 transition" onclick="event.stopPropagation(); openStudentDetail('${safeId}')">${sanitize(s.name)}</h4>
+ <h4 class="font-bold text-slate-900 text-sm sm:text-base hover:text-indigo-600 transition">${sanitize(s.name)}</h4>
  <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${getClassBadgeColorClass(s.classe)}">${sanitize(s.classe)}</span>
  ${s.alerteCPE ? `
  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
@@ -3047,15 +2993,10 @@
  <span>Sortie : <strong class="${s.sortie === 'OUI' ? 'text-slate-700' : 'text-rose-600'}">${s.sortie}</strong></span>
  </div>
  </div>
-
- <!-- Chevron Mobile/Tablette -->
- <button type="button" aria-label="Détails" class="xl:hidden p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 transition-transform duration-200 ${isExpanded ? 'rotate-180 bg-slate-100 text-slate-700' : ''}">
- <i data-lucide="chevron-down" class="w-5 h-5"></i>
- </button>
  </div>
 
  <!-- Grille des Compteurs -->
- <div class="grid grid-cols-4 sm:grid-cols-5 gap-2 xl:w-1/2">
+ <div class="grid grid-cols-4 sm:grid-cols-5 gap-2 xl:w-7/12">
  <!-- Absences -->
  <div class="bg-slate-50 rounded-xl p-2 text-center border border-slate-100">
  <span class="block text-[10px] uppercase font-semibold text-slate-400">Absences</span>
@@ -3086,33 +3027,6 @@
  <span class="text-xs sm:text-sm font-bold ${(s.excl > 0 || s.edtBlq > 0) ? 'text-purple-800' : 'text-slate-400'}">
  ${(s.excl === 0 && s.edtBlq === 0) ? '—' : `${s.excl > 0 ? s.excl + ' Excl.' : ''} ${s.edtBlq > 0 ? s.edtBlq + ' EDT' : ''}`}
  </span>
- </div>
- </div>
-
- <!-- Bouton détails Desktop -->
- <div class="hidden xl:flex items-center justify-end gap-2 w-1/6 text-xs font-medium text-indigo-600">
- <span>${isExpanded ? 'Masquer' : 'Observations'}</span>
- <div class="p-1.5 rounded-lg bg-indigo-50 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}">
- <i data-lucide="chevron-down" class="w-4 h-4"></i>
- </div>
- </div>
- </div>
-
- <!-- Accordéon : Observations détaillées -->
- <div class="accordion-content ${isExpanded ? 'open' : ''} bg-slate-50/80 border-t border-slate-100 rounded-b-2xl">
- <div class="p-4 text-sm text-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
- <div class="flex items-start gap-2.5">
- <i data-lucide="file-text" class="w-4 h-4 text-indigo-600 shrink-0 mt-0.5"></i>
- <div>
- <span class="font-semibold text-slate-900">Événements PRONOTE : </span>
- <span class="text-xs sm:text-sm">${sanitize(s.details)}</span>
- </div>
- </div>
- <div class="flex flex-wrap items-center gap-1.5 shrink-0">
- ${s.tags.map(t => `<span class="px-2 py-0.5 bg-white border border-slate-200 rounded-md text-[11px] font-medium text-slate-600">${sanitize(t)}</span>`).join('')}
- <button onclick="openStudentDetail('${safeId}')" class="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[11px] font-semibold transition">
- Fiche complète
- </button>
  </div>
  </div>
  </div>
@@ -3154,29 +3068,6 @@
  }
  }
  });
- renderBilanView();
- }
-
- function toggleBilanStudent(id) {
- if (bilanExpandedIds.has(id)) {
- bilanExpandedIds.delete(id);
- } else {
- bilanExpandedIds.add(id);
- }
- renderBilanView();
- }
-
- function toggleAllBilanDetails() {
- const btnText = document.querySelector('#btnToggleAllBilan span');
- if (!bilanAllExpanded) {
- students.forEach(s => bilanExpandedIds.add(s.id));
- bilanAllExpanded = true;
- if (btnText) btnText.textContent = "Tout replier";
- } else {
- bilanExpandedIds.clear();
- bilanAllExpanded = false;
- if (btnText) btnText.textContent = "Tout déplier";
- }
  renderBilanView();
  }
 
@@ -4387,7 +4278,9 @@
  const { jsPDF } = window.jspdf;
  const doc = new jsPDF({ orientation: 'l', unit: 'mm', format: 'a4' });
 
- const title = selectedClass === 'ALL' ? "Bilan Global Vie Scolaire (Toutes classes)" : `Bilan Vie Scolaire - Classe ${selectedClass}`;
+ const title = selectedClass === 'ALL' ? "Bilan Global Vie Scolaire (Toutes Classes)" : `Bilan Vie Scolaire — Classe ${selectedClass}`;
+ const dateStr = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
  doc.setFont('Helvetica', 'bold');
  doc.setFontSize(16);
  doc.setTextColor(30, 41, 59);
@@ -4396,32 +4289,32 @@
  doc.setFontSize(10);
  doc.setFont('Helvetica', 'normal');
  doc.setTextColor(100, 116, 139);
- doc.text(`Date d'édition : ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'})}  |  Effectif : ${targetStudents.length} élève(s)`, 14, 21);
+ doc.text(`Généré le ${dateStr} | Effectif : ${targetStudents.length} élève(s)`, 14, 21);
 
  let currentY = 26;
 
  if (exportType === 'summary' || exportType === 'both') {
- const tableData = targetStudents.map(s => {
+ const summaryBody = targetStudents.map(s => {
  const events = s.events || [];
  const retards = events.filter(e => e.type === 'retard').length;
  const absences = events.filter(e => e.type === 'absence').length;
  const retenues = events.filter(e => e.type === 'retenue' || getStatutDetailFromMotif(e.motif) === 'Retenue').reduce((sum, e) => sum + getRetenueHours(e), 0);
- const formattedRetenues = Number.isInteger(retenues) ? retenues : retenues.toFixed(1);
  const emploiBloque = events.filter(e => e.type === 'emploi_bloque' || getStatutDetailFromMotif(e.motif) === 'emploi du temps bloqué').length;
  const exclusions = events.filter(e => e.type === 'exclusion' || getStatutDetailFromMotif(e.motif) === 'Exclusion de cours').length;
  const absInjustifiees = countUnjustifiedAbsences(s);
- const thresholdInfo = getExceededThresholdsInfo(s);
+
+ const formattedRetenues = Number.isInteger(retenues) ? retenues : retenues.toFixed(1);
 
  return [
  `${s.nom.toUpperCase()} ${s.prenom}`,
  s.classe,
- s.regime === 'Demi-pensionnaire' ? 'DP' : (s.regime === 'Externe' ? 'Ext' : 'Int'),
+ s.regime,
  s.autorisationSortie,
- s.alerteCPE ? (thresholdInfo.hasExceeded ? `OUI (${thresholdInfo.summaryText})` : 'OUI') : '-',
- s.docNonRendu ? 'OUI' : '-',
+ s.alerteCPE ? 'OUI' : 'Non',
+ s.docNonRendu ? 'OUI' : 'Non',
  retards,
  absences,
- `${formattedRetenues}h`,
+ `${formattedRetenues} h`,
  emploiBloque,
  exclusions,
  absInjustifiees
@@ -4430,108 +4323,174 @@
 
  doc.autoTable({
  startY: currentY,
- head: [['Élève', 'Classe', 'Régime', 'Sortie', 'Alerte CPE', 'Doc NR', 'Retards', 'Abs.', 'Retenues', 'EDT Blq.', 'Excl.', 'Abs. Inj.']],
- body: tableData,
+ head: [['Élève', 'Classe', 'Régime', 'Sortie', 'Alerte CPE', 'Doc. Rendu', 'Retards', 'Absences', 'Colles', 'EDT Bloq.', 'Excl.', 'Abs. Inj.']],
+ body: summaryBody,
  theme: 'grid',
- headStyles: { fillColor: [49, 46, 129], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8 },
- styles: { fontSize: 7.5, cellPadding: 2, halign: 'center' },
+ headStyles: { fillColor: [49, 46, 129], textColor: [255, 255, 255], fontStyle: 'bold' },
+ styles: { fontSize: 7.5, cellPadding: 1.5, halign: 'center' },
  columnStyles: {
- 0: { halign: 'left', fontStyle: 'bold', cellWidth: 42 },
- 4: { halign: 'left', cellWidth: 42, textColor: [185, 28, 28], fontStyle: 'bold' }
+ 0: { halign: 'left', fontStyle: 'bold' },
+ 2: { halign: 'left' }
+ },
+ didParseCell: function(data) {
+ if (data.section === 'body') {
+ if (data.column.index === 4 && data.cell.raw === 'OUI') {
+ data.cell.styles.textColor = [225, 29, 72];
+ data.cell.styles.fontStyle = 'bold';
+ }
+ if (data.column.index === 5 && data.cell.raw === 'OUI') {
+ data.cell.styles.textColor = [217, 119, 6];
+ data.cell.styles.fontStyle = 'bold';
+ }
+ if (data.column.index === 3 && data.cell.raw === 'Non') {
+ data.cell.styles.textColor = [225, 29, 72];
+ data.cell.styles.fontStyle = 'bold';
+ }
+ }
  }
  });
+
  currentY = doc.lastAutoTable.finalY + 10;
  }
 
  if (exportType === 'details' || exportType === 'both') {
- if (exportType === 'both' && currentY > 150) {
+ const detailRows = [];
+ targetStudents.forEach(s => {
+ (s.events || []).forEach(ev => {
+ const eventDateStr = extractDateFromText(ev.motif) || ev.date;
+ const parsedDate = new Date(eventDateStr);
+ const formattedDate = !isNaN(parsedDate.getTime()) ? parsedDate.toLocaleDateString('fr-FR') : ev.date;
+ let typeLabel = ev.type.toUpperCase();
+ if (ev.type === 'emploi_bloque') typeLabel = "EDT BLOQUÉ";
+ if (ev.type === 'exclusion') typeLabel = "EXCLUSION";
+ if (ev.type === 'abs_injustifiee') typeLabel = "ABS. INJUSTIFIÉE";
+
+ detailRows.push([
+ `${s.nom.toUpperCase()} ${s.prenom}`,
+ s.classe,
+ formattedDate,
+ typeLabel,
+ ev.motif || '-'
+ ]);
+ });
+ });
+
+ if (detailRows.length > 0) {
+ if (currentY > 170) {
  doc.addPage();
  currentY = 15;
  }
  doc.setFont('Helvetica', 'bold');
  doc.setFontSize(12);
- doc.setTextColor(30, 41, 59);
- doc.text("Détail des Événements Enregistrés", 14, currentY);
- currentY += 5;
+ doc.text("Détail des événements enregistrés", 14, currentY);
+ currentY += 4;
 
- const detailsData = [];
- targetStudents.forEach(s => {
- (s.events || []).forEach(e => {
- const dateStr = extractDateFromText(e.motif) || e.date;
- const parsed = new Date(dateStr);
- const formattedDate = !isNaN(parsed.getTime()) ? parsed.toLocaleDateString('fr-FR') : '--';
- 
- let typeLabel = e.type.toUpperCase();
- if (e.type === 'retard') typeLabel = "Retard";
- else if (e.type === 'absence') typeLabel = "Absence";
- else if (e.type === 'retenue') typeLabel = `Retenue (${getRetenueHours(e)}h)`;
- else if (e.type === 'emploi_bloque') typeLabel = "EDT Bloqué";
- else if (e.type === 'exclusion') typeLabel = "Exclusion";
- else if (e.type === 'abs_injustifiee' || (e.pronoteType && e.pronoteType.toLowerCase().includes('absence injustifiée'))) typeLabel = "Absence injustifiée";
-
- detailsData.push([
- `${s.nom.toUpperCase()} ${s.prenom}`,
- s.classe,
- formattedDate,
- typeLabel,
- e.motif || '--'
- ]);
- });
- });
-
- if (detailsData.length === 0) {
- doc.setFont('Helvetica', 'italic');
- doc.setFontSize(9);
- doc.text("Aucun événement enregistré pour cette sélection.", 14, currentY + 5);
- } else {
  doc.autoTable({
  startY: currentY,
- head: [['Élève', 'Classe', 'Date', 'Type', 'Motif / Remarque']],
- body: detailsData,
+ head: [['Élève', 'Classe', 'Date', 'Type', 'Motif / Détail']],
+ body: detailRows,
  theme: 'striped',
- headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: 'bold' },
- styles: { fontSize: 8, cellPadding: 2 },
+ headStyles: { fillColor: [71, 85, 105], textColor: [255, 255, 255] },
+ styles: { fontSize: 7.5, cellPadding: 1.5 },
  columnStyles: {
  0: { fontStyle: 'bold', cellWidth: 45 },
- 1: { cellWidth: 20, halign: 'center' },
- 2: { cellWidth: 25, halign: 'center' },
- 3: { cellWidth: 35 },
+ 1: { cellWidth: 20 },
+ 2: { cellWidth: 25 },
+ 3: { cellWidth: 32 },
  4: { cellWidth: 'auto' }
  }
  });
+ } else if (exportType === 'details') {
+ doc.setFont('Helvetica', 'italic');
+ doc.setFontSize(10);
+ doc.text("Aucun événement enregistré pour cette sélection.", 14, currentY);
  }
  }
 
  closeModal('exportClassModal');
- const filename = selectedClass === 'ALL' 
- ? `VieScolaire_Toutes_Classes_${new Date().toISOString().slice(0,10)}.pdf`
- : `VieScolaire_${selectedClass.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0,10)}.pdf`;
+ const filename = selectedClass === 'ALL' ? `Export_VieScolaire_Global.pdf` : `Export_VieScolaire_${selectedClass.replace(/\s+/g, '_')}.pdf`;
  doc.save(filename);
  }
 
- function exportStudentPDF() {
- const element = document.getElementById('studentDetailCard');
- const opt = {
- margin: 10,
- filename: `Fiche_Eleve_${document.getElementById('detailName').textContent.replace(/\s+/g, '_')}.pdf`,
- image: { type: 'jpeg', quality: 0.98 },
- html2canvas: { scale: 2 },
- jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
- };
+ async function exportStudentPDF() {
+ if (!selectedStudentId) return;
+ updateAutoCpeAlerts();
+ const s = students.find(st => st.id === selectedStudentId);
+ if (!s) return;
 
- html2canvas(element, { scale: 2 }).then(canvas => {
- const imgData = canvas.toDataURL('image/png');
  const { jsPDF } = window.jspdf;
- const pdf = new jsPDF('p', 'mm', 'a4');
- const pdfWidth = pdf.internal.pageSize.getWidth();
- const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
- pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
- pdf.save(opt.filename);
+ const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+
+ doc.setFont('Helvetica', 'bold');
+ doc.setFontSize(18);
+ doc.setTextColor(30, 41, 59);
+ doc.text(`Fiche Vie Scolaire : ${s.nom.toUpperCase()} ${s.prenom}`, 14, 18);
+
+ doc.setFontSize(10);
+ doc.setFont('Helvetica', 'normal');
+ doc.setTextColor(71, 85, 105);
+ doc.text(`Classe : ${s.classe}   |   Régime : ${s.regime}   |   Autorisation sortie : ${s.autorisationSortie}`, 14, 25);
+ doc.text(`Professeur Principal : ${s.profPrincipal || 'Non renseigné'}`, 14, 30);
+ doc.text(`Alerte CPE : ${s.alerteCPE ? 'OUI (ACTIVÉE)' : 'Non'}   |   Document non rendu : ${s.docNonRendu ? 'OUI' : 'Non'}`, 14, 35);
+
+ const thresholdInfo = getExceededThresholdsInfo(s);
+ let startY = 40;
+ if (thresholdInfo.hasExceeded) {
+ doc.setFont('Helvetica', 'bold');
+ doc.setTextColor(190, 18, 60);
+ doc.text(`Seuils dépassés : ${thresholdInfo.summaryText}`, 14, 41);
+ startY = 47;
+ }
+
+ const events = s.events || [];
+ const retards = events.filter(e => e.type === 'retard').length;
+ const absences = events.filter(e => e.type === 'absence').length;
+ const retenues = events.filter(e => e.type === 'retenue' || getStatutDetailFromMotif(e.motif) === 'Retenue').reduce((sum, e) => sum + getRetenueHours(e), 0);
+ const emploiBloque = events.filter(e => e.type === 'emploi_bloque' || getStatutDetailFromMotif(e.motif) === 'emploi du temps bloqué').length;
+ const exclusions = events.filter(e => e.type === 'exclusion' || getStatutDetailFromMotif(e.motif) === 'Exclusion de cours').length;
+ const absInjustifiees = countUnjustifiedAbsences(s);
+
+ const formattedRetenues = Number.isInteger(retenues) ? retenues : retenues.toFixed(1);
+
+ doc.autoTable({
+ startY: startY,
+ head: [['Retards', 'Absences', 'Heures Retenue', 'EDT Bloqué', 'Exclusions', 'Abs. Injustifiées']],
+ body: [[retards, absences, `${formattedRetenues} h`, emploiBloque, exclusions, absInjustifiees]],
+ theme: 'grid',
+ headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255] },
+ styles: { fontSize: 8.5, halign: 'center' }
+ });
+
+ const chartImg = await generateChartImage(
+ ['Retards', 'Absences', 'Heures Retenue', 'EDT Bloqué', 'Exclusions', 'Abs. Injustifiées'],
+ [retards, absences, retenues, emploiBloque, exclusions, absInjustifiees],
+ `Synthèse graphique - ${s.nom.toUpperCase()} ${s.prenom}`
+ );
+ doc.addImage(chartImg, 'PNG', 14, doc.lastAutoTable.finalY + 6, 180, 75);
+
+ const evData = events.map(ev => {
+ const eventDateStr = extractDateFromText(ev.motif) || ev.date;
+ const parsedDate = new Date(eventDateStr);
+ const formattedDate = !isNaN(parsedDate.getTime()) ? parsedDate.toLocaleDateString('fr-FR') : ev.date;
+ return [formattedDate, ev.type.toUpperCase(), ev.motif || '-'];
+ });
+
+ if (evData.length > 0) {
+ doc.autoTable({
+ startY: doc.lastAutoTable.finalY + 88,
+ head: [['Date', 'Événement', 'Motif']],
+ body: evData,
+ theme: 'striped',
+ headStyles: { fillColor: [71, 85, 105] },
+ styles: { fontSize: 8.5 }
  });
  }
 
+ doc.save(`Fiche_${s.nom.toUpperCase()}_${s.prenom}.pdf`);
+ }
+
  // =========================================================
- // 13. GESTION AJOUT / SUPPRESSION ÉLÈVE
+ // 13. GESTION NOUVEL ÉLÈVE & SUPPRESSION
  // =========================================================
  function openAddStudentModal() {
  document.getElementById('addStudentForm').reset();
@@ -4544,9 +4503,9 @@
  const prenom = document.getElementById('newPrenom').value.trim();
  const classe = document.getElementById('newClasse').value.trim();
  const regime = document.getElementById('newRegime').value;
- const autorisation = document.getElementById('newAutorisation').value;
- const prof = document.getElementById('newProf').value.trim();
- const alerteCpe = document.getElementById('newAlerteCpe').value === 'Oui';
+ const autorisationSortie = document.getElementById('newAutorisation').value;
+ const profPrincipal = document.getElementById('newProf').value.trim();
+ const alerteCPE = document.getElementById('newAlerteCpe').value === 'Oui';
  const docNonRendu = document.getElementById('newDocNonRendu').value === 'Oui';
 
  const newStudent = {
@@ -4555,10 +4514,10 @@
  prenom,
  classe,
  regime,
- autorisationSortie: autorisation,
- profPrincipal: prof,
- alerteCPE: alerteCpe,
- docNonRendu: docNonRendu,
+ autorisationSortie,
+ profPrincipal,
+ alerteCPE,
+ docNonRendu,
  badgeRepere: '',
  badgeCantine: '',
  events: []
@@ -4579,7 +4538,6 @@
  if (!selectedStudentId) return;
  students = students.filter(s => s.id !== selectedStudentId);
  saveStorage();
- populateClassFilter();
  closeModal('deleteModal');
  showListPage();
  }
