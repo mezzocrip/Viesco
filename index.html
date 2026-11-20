@@ -245,7 +245,7 @@
  <span class="hidden sm:inline">Effacer Import</span>
  </button>
 
- <button onclick="triggerFileImport()" class="inline-flex items-center gap-1.5 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 text-slate-700 text-xs font-medium px-3 py-2.5 rounded-xl border border-slate-200 transition" title="Importer la liste d'élèves">
+ <button onclick="triggerFileImport()" class="inline-flex items-center gap-1.5 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 text-slate-700 text-xs font-medium px-3 py-2.5 rounded-xl border border-slate-200 transition" title="Importer la liste d'élèves (ajoute les nouveaux et met à jour les classes sans doublons)">
  <i data-lucide="file-spreadsheets" class="w-4 h-4 text-emerald-600"></i>
  <span class="hidden md:inline">Importer Élèves</span>
  </button>
@@ -1044,6 +1044,20 @@
  <p>Les modifications de seuil et de classes seront appliquées immédiatement à l'ensemble de la base de données élèves.</p>
  </div>
 
+ <!-- ZONE DE GESTION / RÉINITIALISATION DE LA LISTE DES ÉLÈVES -->
+ <div class="border-t border-slate-200 pt-3">
+ <div class="bg-rose-50/80 border border-rose-200 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+ <div>
+ <p class="text-xs font-bold text-rose-900">Gestion de la base élèves</p>
+ <p class="text-[11px] text-rose-700">Supprimer tous les élèves enregistrés pour repartir sur une liste vierge.</p>
+ </div>
+ <button type="button" onclick="closeModal('settingsModal'); openResetModal();" class="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-xl shadow-2xs transition shrink-0">
+ <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+ <span>Effacer la liste des élèves</span>
+ </button>
+ </div>
+ </div>
+
  <div class="flex justify-end gap-2 pt-2">
  <button type="button" onclick="closeModal('settingsModal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl">Annuler</button>
  <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl shadow-xs flex items-center gap-1.5">
@@ -1115,8 +1129,8 @@
  <i data-lucide="alert-octagon" class="w-6 h-6"></i>
  </div>
  <div>
- <h3 class="font-bold text-base text-slate-800">Effacer la Base de Données</h3>
- <p class="text-xs text-slate-500 mt-1.5">Attention ! Cette action supprimera définitivement <b>TOUS LES ÉLÈVES</b> et leurs historiques pour débuter une nouvelle année.</p>
+ <h3 class="font-bold text-base text-slate-800">Effacer la liste des élèves</h3>
+ <p class="text-xs text-slate-500 mt-1.5">Attention ! Cette action supprimera définitivement <b>TOUS LES ÉLÈVES</b> et leurs historiques pour débuter une nouvelle année ou une nouvelle liste.</p>
  </div>
  <div class="flex justify-center gap-2 pt-1">
  <button onclick="closeModal('resetDbModal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition">Annuler</button>
@@ -1346,7 +1360,7 @@
  cpeThresholdEmploiBloque: 1,
  cpeThresholdExclusion: 1,
  cpeLevels: ['5', '4'],
- cpeClasses: null // Liste des classes précises sélectionnées (null = migration initiale depuis cpeLevels)
+ cpeClasses: null
  };
 
  let students = [];
@@ -1489,6 +1503,16 @@
  .replace(/'/g, '&#039;');
  }
 
+ function normalizeNameForMatch(str) {
+ if (!str) return '';
+ return String(str)
+ .normalize('NFD')
+ .replace(/[\u0300-\u036f]/g, '')
+ .replace(/[^a-zA-Z0-9]/g, '')
+ .toLowerCase()
+ .trim();
+ }
+
  function loadSettings() {
  const saved = localStorage.getItem(SETTINGS_STORAGE_KEY);
  if (saved) {
@@ -1518,12 +1542,10 @@
 
  function isEligibleForAutoCpe(classe) {
  if (!classe) return false;
- // Si l'utilisateur a configuré la sélection précise par classe
  if (Array.isArray(appSettings.cpeClasses)) {
  const normalizedTarget = String(classe).trim().toLowerCase();
  return appSettings.cpeClasses.some(c => String(c).trim().toLowerCase() === normalizedTarget);
  }
- // Sinon compatibilité avec les anciens niveaux
  return matchesLegacyCpeLevel(classe);
  }
 
@@ -1594,8 +1616,6 @@
  const info = getExceededThresholdsInfo(student);
  student.alerteCPE = info.hasExceeded;
  } else if (Array.isArray(appSettings.cpeClasses)) {
- // Si la classe n'est pas sélectionnée dans les alertes automatiques,
- // on désactive l'alerte sauf si elle a été activée manuellement par l'utilisateur
  if (!student.manualAlerteCPE) {
  student.alerteCPE = false;
  }
@@ -1907,7 +1927,6 @@
  if (!container) return;
  container.innerHTML = '';
 
- // Récupérer toutes les classes précises présentes dans la base de données élèves
  const detectedClasses = [...new Set(students.map(s => (s.classe || '').trim()))].filter(Boolean).sort((a, b) => a.localeCompare(b, 'fr', { numeric: true }));
 
  if (detectedClasses.length === 0) {
@@ -2764,7 +2783,6 @@
  const mappedStudents = rawScope.map(computeBilanMetricsForStudent);
  const totalStudentsCount = mappedStudents.length;
 
- // Mise à jour de l'en-tête
  const iconEl = document.getElementById('bilanClassIcon');
  if (iconEl) {
  iconEl.textContent = selectedClass === 'ALL' ? 'ALL' : selectedClass.replace(/\s+/g, '');
@@ -2775,7 +2793,6 @@
  subEl.innerHTML = `<i data-lucide="calendar" class="w-3.5 h-3.5"></i> <span>Arrêté au ${todayStr} • ${totalStudentsCount} élève${totalStudentsCount > 1 ? 's' : ''} (${selectedClass === 'ALL' ? 'Toutes classes' : 'Classe ' + sanitize(selectedClass)})</span>`;
  }
 
- // Calcul des totaux globaux
  const totalAbs = mappedStudents.reduce((acc, s) => acc + s.abs, 0);
  const totalInjust = mappedStudents.reduce((acc, s) => acc + s.absInjust, 0);
  const totalJust = mappedStudents.reduce((acc, s) => acc + s.absJust, 0);
@@ -2793,7 +2810,6 @@
  const totalEdt = mappedStudents.reduce((acc, s) => acc + s.edtBlq, 0);
  const totalSanctions = totalExcl + totalEdt;
 
- // Injection KPIs
  document.getElementById('bilanKpiTotalAbs').textContent = totalAbs;
  document.getElementById('bilanKpiInjustPctBadge').textContent = `${injustPct}% injust.`;
  document.getElementById('bilanKpiInjustCount').textContent = totalInjust;
@@ -2821,7 +2837,6 @@
  document.getElementById('bilanKpiExclBadge').textContent = `${totalExcl} Excl.`;
  document.getElementById('bilanKpiEdtBadge').textContent = `${totalEdt} EDT Blq.`;
 
- // Cartes d'analyse dynamique (Section 2)
  const sortedByAbs = [...mappedStudents].sort((a, b) => b.abs - a.abs);
  const topAbs4 = sortedByAbs.slice(0, 4).filter(s => s.abs > 0);
  const topAbs4Sum = topAbs4.reduce((acc, s) => acc + s.abs, 0);
@@ -2863,14 +2878,12 @@
  posTextEl.innerHTML = `<strong>${noCpeCount} élève${noCpeCount > 1 ? 's' : ''}</strong> n'ont aucune alerte CPE, et <strong>${exemplaires.length}</strong> ne comptent aucune absence injustifiée ni sanction.`;
  }
 
- // Compteurs des boutons de filtre
  document.getElementById('bilanCountAll').textContent = totalStudentsCount;
  document.getElementById('bilanCountCpe').textContent = cpeStudents.length;
  document.getElementById('bilanCountDisc').textContent = discStudents.length;
  document.getElementById('bilanCountDp').textContent = mappedStudents.filter(s => s.regime === 'Demi-pensionnaire').length;
  document.getElementById('bilanCountEx').textContent = exemplaires.length;
 
- // Graphiques (Section 3)
  renderBilanCharts({
  totalAbs,
  totalInjust,
@@ -2880,7 +2893,6 @@
  totalEdt
  }, sortedByAbs);
 
- // Liste des élèves (Section 4)
  renderBilanStudentsList(mappedStudents);
  }
 
@@ -2913,7 +2925,6 @@
  `;
  }).join('');
 
- // Top 6 élèves par volume d'absences
  const top6 = sortedByAbs.filter(s => s.abs > 0).slice(0, 6);
  const topContainer = document.getElementById('bilanTopStudentsChart');
 
@@ -3083,15 +3094,12 @@
  const classDisplayName = selectedClass === 'ALL' ? 'Toutes les classes' : `Classe ${selectedClass}`;
  const todayFile = new Date().toISOString().slice(0, 10);
 
- // Cloner le contenu de la section Bilan pour l'exporter sans aucune modification possible (lecture seule)
  const bilanSection = document.getElementById('pageBilan');
  const clone = bilanSection.cloneNode(true);
  clone.classList.remove('hidden', 'page-fade');
 
- // Supprimer tous les contrôles interactifs (sélecteur de classe, boutons d'action, recherche, tri, filtres)
  clone.querySelectorAll('.no-print').forEach(el => el.remove());
 
- // Désactiver tout événement onclick ou curseur cliquable sur les cartes d'élèves (lecture seule stricte)
  clone.querySelectorAll('[onclick]').forEach(el => {
  el.removeAttribute('onclick');
  el.classList.remove('cursor-pointer', 'hover:shadow-md');
@@ -3491,7 +3499,6 @@
  const hiddenContainer = document.getElementById('pdfQrHiddenContainer');
  hiddenContainer.innerHTML = '';
 
- // Génération d'un QR code haute résolution (400x400px) pour une impression nette
  new QRCode(hiddenContainer, {
  text: qrContent,
  width: 400,
@@ -3512,45 +3519,34 @@
  }
 
  const { jsPDF } = window.jspdf;
- // Feuille A4 portrait (210 mm x 297 mm)
  const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
 
- // Dimensions standard ISO/IEC 7810 ID-1 (Carte Bleue) : 85.6 mm x 54 mm
  const cardW = 85.6;
  const cardH = 54.0;
  const startX = 20;
  const startY = 25;
 
- // Repères de découpe discrets (traits de coupe aux 4 coins)
  doc.setDrawColor(148, 163, 184);
  doc.setLineWidth(0.2);
  const markLen = 4;
- // Haut-gauche
  doc.line(startX - markLen - 1, startY, startX - 1, startY);
  doc.line(startX, startY - markLen - 1, startX, startY - 1);
- // Haut-droite
  doc.line(startX + cardW + 1, startY, startX + cardW + markLen + 1, startY);
  doc.line(startX + cardW, startY - markLen - 1, startX + cardW, startY - 1);
- // Bas-gauche
  doc.line(startX - markLen - 1, startY + cardH, startX - 1, startY + cardH);
  doc.line(startX, startY + cardH + 1, startX, startY + cardH + markLen + 1);
- // Bas-droite
  doc.line(startX + cardW + 1, startY + cardH, startX + cardW + markLen + 1, startY + cardH);
  doc.line(startX + cardW, startY + cardH + 1, startX + cardW, startY + cardH + markLen + 1);
 
- // Fond blanc et contour de la carte aux coins arrondis (rayon 3.18mm standard CB)
  doc.setFillColor(255, 255, 255);
  doc.setDrawColor(30, 41, 59);
  doc.setLineWidth(0.4);
  doc.roundedRect(startX, startY, cardW, cardH, 3.2, 3.2, 'FD');
 
- // Bandeau supérieur bleu nuit / indigo
  doc.setFillColor(30, 27, 75);
  doc.roundedRect(startX, startY, cardW, 13, 3.2, 3.2, 'F');
- // Masquage des coins inférieurs du bandeau pour avoir un bord droit en bas du bandeau
  doc.rect(startX, startY + 9, cardW, 4, 'F');
 
- // Titre sur le bandeau
  doc.setTextColor(255, 255, 255);
  doc.setFont('Helvetica', 'bold');
  doc.setFontSize(9.5);
@@ -3561,10 +3557,9 @@
  doc.setTextColor(199, 210, 254);
  doc.text("VIE SCOLAIRE • ACCÈS RESTAURATION", startX + 4.5, startY + 10.5);
 
- // Badge classe dans le coin droit du bandeau
  const classeText = (s.classe || '').toUpperCase();
  if (classeText) {
- doc.setFillColor(16, 185, 129); // Vert émeraude
+ doc.setFillColor(16, 185, 129);
  doc.roundedRect(startX + cardW - 19, startY + 3, 14.5, 7, 1.5, 1.5, 'F');
  doc.setTextColor(255, 255, 255);
  doc.setFont('Helvetica', 'bold');
@@ -3572,7 +3567,6 @@
  doc.text(classeText, startX + cardW - 11.75, startY + 7.7, { align: 'center' });
  }
 
- // Informations élève (partie gauche de la carte)
  const textMaxW = 44;
  let textY = startY + 20.5;
 
@@ -3595,7 +3589,6 @@
  const prenomLines = doc.splitTextToSize(s.prenom || '', textMaxW);
  doc.text(prenomLines[0] || '', startX + 4.5, textY);
 
- // Encart N° Badge / Identifiant en bas à gauche
  textY = startY + 39.5;
  doc.setFillColor(241, 245, 249);
  doc.setDrawColor(203, 213, 225);
@@ -3613,7 +3606,6 @@
  const badgeDisplay = (s.badgeCantine && s.badgeCantine.trim()) ? s.badgeCantine.trim() : qrContent.slice(0, 14);
  doc.text(badgeDisplay, startX + 6.5, textY + 7.8);
 
- // Zone QR Code (partie droite de la carte)
  const qrSize = 31;
  const qrX = startX + cardW - qrSize - 4.5;
  const qrY = startY + 16.5;
@@ -3623,7 +3615,6 @@
  doc.roundedRect(qrX - 1.2, qrY - 1.2, qrSize + 2.4, qrSize + 2.4, 1.5, 1.5, 'S');
  doc.addImage(qrDataUrl, 'PNG', qrX, qrY, qrSize, qrSize);
 
- // Mention discrète d'aide à l'impression sous la carte sur la feuille A4
  doc.setFont('Helvetica', 'normal');
  doc.setFontSize(8);
  doc.setTextColor(148, 163, 184);
@@ -3981,36 +3972,94 @@
  }
 
  function processImportedStudents(rows) {
- let count = 0;
+ let addedCount = 0;
+ let classUpdatedCount = 0;
+ let unchangedDuplicatesCount = 0;
+ const processedKeysInBatch = new Set();
+
  rows.forEach(r => {
- const nom = r.Nom || r.nom || r.NOM;
- const prenom = r.Prenom || r.prenom || r.Prénom || r.PRÉNOM;
- if (nom && prenom) {
- const classe = r.Classe || r.classe || r.CLASSE || 'Sans Classe';
- const regime = r.Regime || r.regime || 'Demi-pensionnaire';
- const autoris = r.Autorisation || r.autorisation || 'Oui';
- 
+ const rawNom = r.Nom || r.nom || r.NOM;
+ const rawPrenom = r.Prenom || r.prenom || r.Prénom || r.PRÉNOM;
+ if (!rawNom || !rawPrenom) return;
+
+ const nomFormatted = String(rawNom).trim().toUpperCase();
+ const prenomFormatted = String(rawPrenom).trim();
+
+ // Ignorer l'éventuelle ligne d'en-tête CSV/TXT
+ const normNom = normalizeNameForMatch(nomFormatted);
+ const normPrenom = normalizeNameForMatch(prenomFormatted);
+ if (!normNom || !normPrenom) return;
+ if (normNom === 'nom' && (normPrenom === 'prenom' || normPrenom === 'prénom')) return;
+
+ const batchKey = `${normNom}|${normPrenom}`;
+ if (processedKeysInBatch.has(batchKey)) {
+ unchangedDuplicatesCount++;
+ return;
+ }
+ processedKeysInBatch.add(batchKey);
+
+ const rawClasse = r.Classe || r.classe || r.CLASSE;
+ const newClasse = (rawClasse !== undefined && rawClasse !== null && String(rawClasse).trim() !== '')
+ ? String(rawClasse).trim()
+ : 'Sans Classe';
+
+ const rawRegime = r.Regime || r.regime || r.RÉGIME || r.Régime;
+ const rawAutoris = r.Autorisation || r.autorisation || r.AutorisationSortie || r.Sortie;
+
+ // Recherche de l'élève existant dans la base (correspondance exacte normalisée Nom + Prénom, ou inversion Nom/Prénom)
+ const existingStudent = students.find(s => {
+ const sNom = normalizeNameForMatch(s.nom);
+ const sPrenom = normalizeNameForMatch(s.prenom);
+ return (sNom === normNom && sPrenom === normPrenom) || (sNom === normPrenom && sPrenom === normNom);
+ });
+
+ if (existingStudent) {
+ const currentClasseNorm = String(existingStudent.classe || '').trim().toLowerCase();
+ const incomingClasseNorm = newClasse.toLowerCase();
+
+ if (newClasse !== 'Sans Classe' && currentClasseNorm !== incomingClasseNorm) {
+ existingStudent.classe = newClasse;
+ classUpdatedCount++;
+ } else {
+ unchangedDuplicatesCount++;
+ }
+
+ if (rawRegime !== undefined && rawRegime !== null && String(rawRegime).trim() !== '') {
+ existingStudent.regime = String(rawRegime).trim();
+ }
+ if (rawAutoris !== undefined && rawAutoris !== null && String(rawAutoris).trim() !== '') {
+ existingStudent.autorisationSortie = String(rawAutoris).trim();
+ }
+ } else {
  students.push({
  id: generateUUID(),
- nom: String(nom).trim().toUpperCase(),
- prenom: String(prenom).trim(),
- classe: String(classe).trim(),
- regime: String(regime).trim(),
- autorisationSortie: String(autoris).trim(),
+ nom: nomFormatted,
+ prenom: prenomFormatted,
+ classe: newClasse,
+ regime: (rawRegime && String(rawRegime).trim()) ? String(rawRegime).trim() : 'Demi-pensionnaire',
+ autorisationSortie: (rawAutoris && String(rawAutoris).trim()) ? String(rawAutoris).trim() : 'Oui',
  alerteCPE: false,
  docNonRendu: false,
  badgeRepere: '',
  badgeCantine: '',
  events: []
  });
- count++;
+ addedCount++;
  }
  });
 
  saveStorage();
  populateClassFilter();
  filterStudents();
- alert(`${count} élève(s) importé(s) avec succès !`);
+ if (document.getElementById('pageBilan') && !document.getElementById('pageBilan').classList.contains('hidden')) {
+ renderBilanView();
+ }
+ alert(
+ `Importation des élèves terminée :\n` +
+ `• Nouvel(s) élève(s) ajouté(s) : ${addedCount}\n` +
+ `• Changement(s) de classe effectué(s) : ${classUpdatedCount}\n` +
+ `• Doublon(s) ignoré(s) : ${unchangedDuplicatesCount}`
+ );
  }
 
  // =========================================================
@@ -4044,7 +4093,7 @@
  renderBilanView();
  }
  closeModal('resetDbModal');
- alert("Base de données totalement effacée.");
+ alert("La liste des élèves a été totalement effacée.");
  }
 
  function exportCanteenCardsJSON() {
@@ -4189,410 +4238,259 @@
  });
  setTimeout(() => {
  resolve(pdfChartInstance.toBase64Image());
- }, 200);
+ }, 100);
  });
  }
 
- function exportCpeAlertPDF() {
- updateAutoCpeAlerts();
- const cpeStudents = students.filter(s => !!s.alerteCPE);
- if (cpeStudents.length === 0) {
- alert("Aucun élève n'est actuellement marqué en Alerte CPE.");
+ async function exportUnjustifiedAbsencesPDF() {
+ const { jsPDF } = window.jspdf;
+ const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+ const dateStr = new Date().toLocaleDateString('fr-FR');
+ const selectedClass = document.getElementById('classFilter').value;
+
+ const targetStudents = students.filter(s => {
+ const matchesClass = !selectedClass || s.classe === selectedClass;
+ return matchesClass && countUnjustifiedAbsences(s) > 0;
+ }).sort((a, b) => (a.classe || '').localeCompare(b.classe || '') || (a.nom || '').localeCompare(b.nom || ''));
+
+ if (targetStudents.length === 0) {
+ alert("Aucun élève avec des absences injustifiées dans cette sélection.");
  return;
  }
 
- const { jsPDF } = window.jspdf;
- const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+ targetStudents.forEach((s, idx) => {
+ if (idx > 0) doc.addPage();
 
- cpeStudents.sort((a,b) => (a.classe || '').localeCompare(b.classe || '') || (a.nom || '').localeCompare(b.nom || ''));
-
- cpeStudents.forEach((s, index) => {
- if (index > 0) doc.addPage();
-
- const events = s.events || [];
- const retards = events.filter(e => e.type === 'retard').length;
- const absences = events.filter(e => e.type === 'absence').length;
- const retenues = events.filter(e => e.type === 'retenue' || getStatutDetailFromMotif(e.motif) === 'Retenue').reduce((sum, e) => sum + getRetenueHours(e), 0);
- const formattedRetenues = Number.isInteger(retenues) ? retenues : retenues.toFixed(1);
- const emploiBloque = events.filter(e => e.type === 'emploi_bloque' || getStatutDetailFromMotif(e.motif) === 'emploi du temps bloqué').length;
- const exclusions = events.filter(e => e.type === 'exclusion' || getStatutDetailFromMotif(e.motif) === 'Exclusion de cours').length;
- const absInjustifiees = countUnjustifiedAbsences(s);
-
- doc.setFont('Helvetica', 'bold');
- doc.setFontSize(22);
- doc.setTextColor(190, 18, 60);
- doc.text(`${s.nom.toUpperCase()} ${s.prenom}`, 14, 20);
-
- doc.setFontSize(15);
- doc.setTextColor(30, 41, 59);
- doc.text(`CLASSE : ${s.classe || 'Non renseignée'}`, 14, 28);
-
- doc.setFontSize(10);
- doc.setFont('Helvetica', 'normal');
- doc.setTextColor(71, 85, 105);
- doc.text(`Régime : ${s.regime || '--'}  |  Professeur Principal : ${s.profPrincipal || 'Non renseigné'}`, 14, 35);
- doc.text(`Document généré le : ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'})}  |  Statut : ALERTE CPE`, 14, 40);
-
- doc.setLineWidth(0.5);
- doc.setDrawColor(190, 18, 60);
- doc.line(14, 44, 196, 44);
-
- doc.setFont('Helvetica', 'bold');
- doc.setFontSize(12);
- doc.setTextColor(30, 41, 59);
- doc.text("1. Synthèse des Compteurs", 14, 52);
-
- doc.autoTable({
- startY: 56,
- head: [['Retards', 'Absences', 'Heures Retenue', 'EDT Bloqué', 'Exclusions', 'Abs. Injustifiées']],
- body: [[
- `${retards}`,
- `${absences}`,
- `${formattedRetenues} h`,
- `${emploiBloque}`,
- `${exclusions}`,
- `${absInjustifiees}`
- ]],
- theme: 'grid',
- headStyles: { fillColor: [30, 27, 75], textColor: 255, halign: 'center', fontSize: 9 },
- bodyStyles: { halign: 'center', fontStyle: 'bold', fontSize: 11, textColor: [30, 41, 59] },
- margin: { left: 14, right: 14 }
- });
-
- const thresholdInfo = getExceededThresholdsInfo(s);
- let nextY = doc.lastAutoTable.finalY + 8;
-
- if (thresholdInfo.hasExceeded) {
- doc.setFont('Helvetica', 'bold');
- doc.setFontSize(10);
- doc.setTextColor(190, 18, 60);
- doc.text(`Seuils dépassés : ${thresholdInfo.summaryText}`, 14, nextY);
- nextY += 8;
- }
-
- doc.setFont('Helvetica', 'bold');
- doc.setFontSize(12);
- doc.setTextColor(30, 41, 59);
- doc.text("2. Historique des Événements & Punitions", 14, nextY);
-
- const sortedEvents = events.slice().sort((a,b) => {
- const dA = extractDateFromText(a.motif) || a.date;
- const dB = extractDateFromText(b.motif) || b.date;
- return new Date(dB) - new Date(dA);
- });
-
- if (sortedEvents.length === 0) {
- doc.setFont('Helvetica', 'italic');
- doc.setFontSize(10);
- doc.setTextColor(100, 116, 139);
- doc.text("Aucun événement enregistré dans l'historique.", 14, nextY + 8);
- } else {
- const tableRows = sortedEvents.map(ev => {
- const dStr = extractDateFromText(ev.motif) || ev.date;
- const parsed = new Date(dStr);
- const fDate = !isNaN(parsed.getTime()) ? parsed.toLocaleString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }) : (ev.date || '--');
- 
- let typeTxt = ev.type ? ev.type.toUpperCase() : '--';
- if (ev.type === 'emploi_bloque') typeTxt = 'EDT BLOQUÉ';
- if (ev.type === 'exclusion') typeTxt = 'EXCLUSION COURS';
- if (ev.type === 'abs_injustifiee') typeTxt = 'ABS. INJUSTIFIÉE';
- if (ev.type === 'retenue') typeTxt = 'RETENUE';
-
- let statutTxt = '--';
- const motifStatut = getStatutDetailFromMotif(ev.motif);
- const isJust = ev.justified === 'Oui' || /\boui\b/i.test(ev.motif || '');
- 
- if (ev.type === 'retenue' || motifStatut === 'Retenue') {
- const h = getRetenueHours(ev);
- statutTxt = `${Number.isInteger(h) ? h : h.toFixed(1)}h`;
- } else if (motifStatut) {
- statutTxt = motifStatut;
- } else if (ev.type === 'absence' || ev.type === 'retard') {
- statutTxt = isJust ? 'Justifié' : 'Non justifié';
- }
-
- return [fDate, typeTxt, statutTxt, ev.motif || '-'];
- });
-
- doc.autoTable({
- startY: nextY + 4,
- head: [['Date & Heure', 'Type', 'Statut / Détail', 'Motif / Commentaire']],
- body: tableRows,
- theme: 'striped',
- headStyles: { fillColor: [190, 18, 60], textColor: 255, fontSize: 9 },
- bodyStyles: { fontSize: 8.5 },
- columnStyles: {
- 0: { cellWidth: 32 },
- 1: { cellWidth: 32, fontStyle: 'bold' },
- 2: { cellWidth: 28 },
- 3: { cellWidth: 'auto' }
- },
- margin: { left: 14, right: 14 }
- });
- }
- });
-
- doc.save(`Alerte_CPE_Fiches_${new Date().toISOString().slice(0,10)}.pdf`);
- }
-
- function generateUnjustifiedAbsencesPDFDocument(targetStudents, filename) {
- const { jsPDF } = window.jspdf;
- const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
- let pagesAdded = 0;
-
- targetStudents.sort((a,b) => (a.classe || '').localeCompare(b.classe || '') || (a.nom || '').localeCompare(b.nom || ''));
-
- targetStudents.forEach(s => {
- const events = s.events || [];
- const unjustifiedAbs = events.filter(e => {
+ const absEvents = (s.events || []).filter(e => {
  const isAbs = e.type === 'absence' || e.type === 'abs_injustifiee' || (e.pronoteType && e.pronoteType.toLowerCase().includes('absence injustifiée'));
  const hasOui = /\boui\b/i.test(e.motif || '');
  const isJust = e.justified === 'Oui' || hasOui;
  return isAbs && !isJust;
- }).sort((a,b) => {
- const dA = extractDateFromText(a.motif) || a.date;
- const dB = extractDateFromText(b.motif) || b.date;
- return new Date(dB) - new Date(dA);
- });
+ }).sort((a, b) => new Date(extractDateFromText(b.motif) || b.date) - new Date(extractDateFromText(a.motif) || a.date));
 
- if (unjustifiedAbs.length === 0) return;
-
- if (pagesAdded > 0) doc.addPage();
- pagesAdded++;
-
+ doc.setFillColor(185, 28, 28);
+ doc.rect(0, 0, 210, 26, 'F');
+ doc.setTextColor(255, 255, 255);
  doc.setFont('Helvetica', 'bold');
- doc.setFontSize(22);
- doc.setTextColor(185, 28, 28);
- doc.text(`${s.nom.toUpperCase()} ${s.prenom}`, 14, 22);
-
  doc.setFontSize(14);
- doc.setTextColor(30, 41, 59);
- doc.text(`CLASSE : ${s.classe || 'Non renseignée'}`, 14, 30);
+ doc.text("RELEVÉ DES ABSENCES INJUSTIFIÉES", 14, 12);
+ doc.setFontSize(9);
+ doc.setFont('Helvetica', 'normal');
+ doc.text(`Édité le ${dateStr} | Fiche ${idx + 1} sur ${targetStudents.length}`, 14, 19);
+
+ doc.setFillColor(248, 250, 252);
+ doc.setDrawColor(203, 213, 225);
+ doc.roundedRect(14, 32, 182, 24, 2, 2, 'FD');
+
+ doc.setTextColor(15, 23, 42);
+ doc.setFont('Helvetica', 'bold');
+ doc.setFontSize(13);
+ doc.text(`${(s.nom || '').toUpperCase()} ${s.prenom || ''}`, 18, 40);
 
  doc.setFont('Helvetica', 'normal');
- doc.setFontSize(10);
+ doc.setFontSize(9.5);
  doc.setTextColor(71, 85, 105);
- doc.text(`Régime : ${s.regime || '--'}  |  Professeur Principal : ${s.profPrincipal || 'Non renseigné'}`, 14, 37);
- doc.text(`Relevé des Absences Injustifiées • Édité le ${new Date().toLocaleDateString('fr-FR')}`, 14, 42);
+ doc.text(`Classe : ${s.classe || '--'}   |   Régime : ${s.regime || '--'}   |   Prof. Principal : ${s.profPrincipal || 'Non renseigné'}`, 18, 47);
 
- doc.setLineWidth(0.5);
- doc.setDrawColor(185, 28, 28);
- doc.line(14, 46, 196, 46);
-
- doc.setFont('Helvetica', 'bold');
- doc.setFontSize(12);
  doc.setTextColor(185, 28, 28);
- doc.text(`Total : ${unjustifiedAbs.length} Absence(s) Injustifiée(s)`, 14, 54);
+ doc.setFont('Helvetica', 'bold');
+ doc.text(`Total absences injustifiées : ${absEvents.length}`, 18, 53);
 
- const tableRows = unjustifiedAbs.map((ev, idx) => {
+ const rows = absEvents.map(ev => {
  const dStr = extractDateFromText(ev.motif) || ev.date;
- const parsed = new Date(dStr);
- const fDate = !isNaN(parsed.getTime()) ? parsed.toLocaleString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }) : (ev.date || '--');
- return [
- `${idx + 1}`,
- fDate,
- 'ABSENCE INJUSTIFIÉE',
- ev.motif || 'Non justifiée'
- ];
+ const d = new Date(dStr);
+ const fmtDate = !isNaN(d.getTime()) ? d.toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : (ev.date || '--');
+ return [fmtDate, ev.motif || 'Absence non justifiée'];
  });
 
  doc.autoTable({
- startY: 59,
- head: [['#', 'Date & Heure', 'Type d\'absence', 'Motif / Détail Pronote']],
- body: tableRows,
+ startY: 62,
+ head: [['Date & Heure', 'Détail / Motif PRONOTE']],
+ body: rows,
  theme: 'grid',
- headStyles: { fillColor: [185, 28, 28], textColor: 255, fontSize: 9.5 },
- bodyStyles: { fontSize: 9 },
- columnStyles: {
- 0: { cellWidth: 10, halign: 'center' },
- 1: { cellWidth: 36 },
- 2: { cellWidth: 42, fontStyle: 'bold', textColor: [185, 28, 28] },
- 3: { cellWidth: 'auto' }
- },
+ headStyles: { fillColor: [185, 28, 28], textColor: 255, fontSize: 9, fontStyle: 'bold' },
+ styles: { fontSize: 8.5, cellPadding: 3, overflow: 'linebreak' },
+ columnStyles: { 0: { cellWidth: 42, fontStyle: 'bold' } },
  margin: { left: 14, right: 14 }
  });
 
  const finalY = doc.lastAutoTable.finalY + 15;
- doc.setFont('Helvetica', 'normal');
- doc.setFontSize(9);
+ if (finalY < 265) {
+ doc.setDrawColor(148, 163, 184);
+ doc.line(14, finalY + 15, 95, finalY + 15);
+ doc.line(115, finalY + 15, 196, finalY + 15);
+ doc.setFontSize(8);
  doc.setTextColor(100, 116, 139);
- doc.text("Signature de la Vie Scolaire / CPE :", 14, Math.min(finalY, 270));
- doc.text("Signature des Responsables Légaux :", 120, Math.min(finalY, 270));
+ doc.setFont('Helvetica', 'normal');
+ doc.text("Signature Vie Scolaire / CPE", 14, finalY + 20);
+ doc.text("Signature des Responsables Légaux", 115, finalY + 20);
+ }
  });
 
- if (pagesAdded === 0) {
- alert("Aucune absence injustifiée trouvée pour la sélection.");
- return;
- }
-
- doc.save(filename);
- }
-
- function exportUnjustifiedAbsencesPDF() {
- const selectedClass = document.getElementById('classFilter') ? document.getElementById('classFilter').value : '';
- const scope = selectedClass ? students.filter(s => s.classe === selectedClass) : students;
- const classLabel = selectedClass ? selectedClass.replace(/\s+/g, '_') : 'Toutes_classes';
- generateUnjustifiedAbsencesPDFDocument(scope, `Absences_Injustifiees_${classLabel}_${new Date().toISOString().slice(0,10)}.pdf`);
+ doc.save(`Absences_Injustifiees_${selectedClass || 'Toutes'}_${new Date().toISOString().slice(0, 10)}.pdf`);
  }
 
  function exportSingleStudentUnjustifiedAbsencesPDF() {
  if (!selectedStudentId) return;
  const s = students.find(st => st.id === selectedStudentId);
  if (!s) return;
- generateUnjustifiedAbsencesPDFDocument([s], `Absences_Injustifiees_${s.nom}_${s.prenom}.pdf`);
- }
 
- async function handleExportClassPDF(e) {
- e.preventDefault();
- updateAutoCpeAlerts();
- const selectedClass = document.getElementById('exportClassSelect').value;
- const exportType = document.getElementById('exportTypeSelect').value;
+ const absEvents = (s.events || []).filter(e => {
+ const isAbs = e.type === 'absence' || e.type === 'abs_injustifiee' || (e.pronoteType && e.pronoteType.toLowerCase().includes('absence injustifiée'));
+ const hasOui = /\boui\b/i.test(e.motif || '');
+ const isJust = e.justified === 'Oui' || hasOui;
+ return isAbs && !isJust;
+ }).sort((a, b) => new Date(extractDateFromText(b.motif) || b.date) - new Date(extractDateFromText(a.motif) || a.date));
 
- const targetStudents = selectedClass === 'ALL'
- ? students
- : students.filter(s => s.classe === selectedClass);
-
- if (targetStudents.length === 0) {
- alert("Aucun élève trouvé dans cette classe.");
- return;
- }
-
- if (exportType === 'unjustified') {
- const classLabel = selectedClass === 'ALL' ? 'Toutes_classes' : selectedClass.replace(/\s+/g, '_');
- generateUnjustifiedAbsencesPDFDocument(targetStudents, `Absences_Injustifiees_${classLabel}_${new Date().toISOString().slice(0,10)}.pdf`);
- closeModal('exportClassModal');
+ if (absEvents.length === 0) {
+ alert("Cet élève n'a aucune absence injustifiée enregistrée.");
  return;
  }
 
  const { jsPDF } = window.jspdf;
  const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
- const classLabel = selectedClass === 'ALL' ? 'Toutes les classes' : `Classe ${selectedClass}`;
+ const dateStr = new Date().toLocaleDateString('fr-FR');
 
+ doc.setFillColor(185, 28, 28);
+ doc.rect(0, 0, 210, 26, 'F');
+ doc.setTextColor(255, 255, 255);
  doc.setFont('Helvetica', 'bold');
- doc.setFontSize(16);
- doc.setTextColor(30, 27, 75);
- doc.text(`Bilan Vie Scolaire - ${classLabel}`, 14, 18);
+ doc.setFontSize(14);
+ doc.text("RELEVÉ INDIVIDUEL DES ABSENCES INJUSTIFIÉES", 14, 12);
+ doc.setFontSize(9);
+ doc.setFont('Helvetica', 'normal');
+ doc.text(`Édité le ${dateStr}`, 14, 19);
+
+ doc.setFillColor(248, 250, 252);
+ doc.setDrawColor(203, 213, 225);
+ doc.roundedRect(14, 32, 182, 24, 2, 2, 'FD');
+
+ doc.setTextColor(15, 23, 42);
+ doc.setFont('Helvetica', 'bold');
+ doc.setFontSize(13);
+ doc.text(`${(s.nom || '').toUpperCase()} ${s.prenom || ''}`, 18, 40);
 
  doc.setFont('Helvetica', 'normal');
- doc.setFontSize(9);
+ doc.setFontSize(9.5);
+ doc.setTextColor(71, 85, 105);
+ doc.text(`Classe : ${s.classe || '--'}   |   Régime : ${s.regime || '--'}   |   Prof. Principal : ${s.profPrincipal || 'Non renseigné'}`, 18, 47);
+
+ doc.setTextColor(185, 28, 28);
+ doc.setFont('Helvetica', 'bold');
+ doc.text(`Total absences injustifiées : ${absEvents.length}`, 18, 53);
+
+ const rows = absEvents.map(ev => {
+ const dStr = extractDateFromText(ev.motif) || ev.date;
+ const d = new Date(dStr);
+ const fmtDate = !isNaN(d.getTime()) ? d.toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : (ev.date || '--');
+ return [fmtDate, ev.motif || 'Absence non justifiée'];
+ });
+
+ doc.autoTable({
+ startY: 62,
+ head: [['Date & Heure', 'Détail / Motif PRONOTE']],
+ body: rows,
+ theme: 'grid',
+ headStyles: { fillColor: [185, 28, 28], textColor: 255, fontSize: 9, fontStyle: 'bold' },
+ styles: { fontSize: 8.5, cellPadding: 3, overflow: 'linebreak' },
+ columnStyles: { 0: { cellWidth: 42, fontStyle: 'bold' } },
+ margin: { left: 14, right: 14 }
+ });
+
+ const finalY = doc.lastAutoTable.finalY + 15;
+ if (finalY < 265) {
+ doc.setDrawColor(148, 163, 184);
+ doc.line(14, finalY + 15, 95, finalY + 15);
+ doc.line(115, finalY + 15, 196, finalY + 15);
+ doc.setFontSize(8);
  doc.setTextColor(100, 116, 139);
- doc.text(`Édité le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'})}  •  Effectif : ${targetStudents.length} élève(s)`, 14, 24);
+ doc.setFont('Helvetica', 'normal');
+ doc.text("Signature Vie Scolaire / CPE", 14, finalY + 20);
+ doc.text("Signature des Responsables Légaux", 115, finalY + 20);
+ }
 
- const sorted = [...targetStudents].sort((a,b) => (a.classe || '').localeCompare(b.classe || '') || (a.nom || '').localeCompare(b.nom || ''));
+ doc.save(`Absences_Injustifiees_${s.nom}_${s.prenom}.pdf`);
+ }
 
- if (exportType === 'summary' || exportType === 'both') {
- const rows = sorted.map(s => {
+ async function exportCpeAlertPDF() {
+ updateAutoCpeAlerts();
+ const cpeStudents = students.filter(s => !!s.alerteCPE).sort((a, b) => (a.classe || '').localeCompare(b.classe || '') || (a.nom || '').localeCompare(b.nom || ''));
+
+ if (cpeStudents.length === 0) {
+ alert("Aucun élève n'a l'alerte CPE activée actuellement.");
+ return;
+ }
+
+ const { jsPDF } = window.jspdf;
+ const doc = new jsPDF({ orientation: 'l', unit: 'mm', format: 'a4' });
+ const dateStr = new Date().toLocaleDateString('fr-FR');
+
+ doc.setFillColor(225, 29, 72);
+ doc.rect(0, 0, 297, 24, 'F');
+ doc.setTextColor(255, 255, 255);
+ doc.setFont('Helvetica', 'bold');
+ doc.setFontSize(15);
+ doc.text(`RAPPORT ALERTE CPE — ÉLÈVES SOUS VIGILANCE (${cpeStudents.length})`, 14, 12);
+ doc.setFontSize(9);
+ doc.setFont('Helvetica', 'normal');
+ doc.text(`Généré le ${dateStr} — VieScolaire Pro`, 14, 19);
+
+ const rows = cpeStudents.map(s => {
  const events = s.events || [];
- const retards = events.filter(ev => ev.type === 'retard').length;
- const absences = events.filter(ev => ev.type === 'absence').length;
- const retenues = events.filter(ev => ev.type === 'retenue' || getStatutDetailFromMotif(ev.motif) === 'Retenue').reduce((sum, ev) => sum + getRetenueHours(ev), 0);
- const formattedRetenues = Number.isInteger(retenues) ? retenues : retenues.toFixed(1);
- const emploiBloque = events.filter(ev => ev.type === 'emploi_bloque' || getStatutDetailFromMotif(ev.motif) === 'emploi du temps bloqué').length;
- const exclusions = events.filter(ev => ev.type === 'exclusion' || getStatutDetailFromMotif(ev.motif) === 'Exclusion de cours').length;
+ const retards = events.filter(e => e.type === 'retard').length;
+ const absences = events.filter(e => e.type === 'absence').length;
+ const retenues = events.filter(e => e.type === 'retenue' || getStatutDetailFromMotif(e.motif) === 'Retenue').reduce((sum, e) => sum + getRetenueHours(e), 0);
+ const edtBloque = events.filter(e => e.type === 'emploi_bloque' || getStatutDetailFromMotif(e.motif) === 'emploi du temps bloqué').length;
+ const exclusions = events.filter(e => e.type === 'exclusion' || getStatutDetailFromMotif(e.motif) === 'Exclusion de cours').length;
  const absInjust = countUnjustifiedAbsences(s);
+ const info = getExceededThresholdsInfo(s);
 
  return [
- `${s.nom.toUpperCase()} ${s.prenom}`,
- s.classe,
- s.regime === 'Demi-pensionnaire' ? 'DP' : s.regime,
- s.alerteCPE ? 'OUI' : '-',
- `${retards}`,
- `${absences}`,
- `${formattedRetenues}h`,
- `${emploiBloque}`,
- `${exclusions}`,
- `${absInjust}`
+ `${(s.nom || '').toUpperCase()} ${s.prenom || ''}`,
+ s.classe || '--',
+ retards,
+ absences,
+ absInjust,
+ `${Number.isInteger(retenues) ? retenues : retenues.toFixed(1)}h`,
+ edtBloque,
+ exclusions,
+ info.summaryText || 'Alerte manuelle'
  ];
  });
 
  doc.autoTable({
  startY: 30,
- head: [['Élève', 'Classe', 'Rég.', 'CPE', 'Ret.', 'Abs.', 'Colles', 'EDT Blq', 'Excl.', 'Abs. Inj.']],
+ head: [['Élève', 'Classe', 'Retards', 'Abs.', 'Abs. Inj.', 'Colles', 'EDT Blq.', 'Excl.', 'Motif / Seuils Dépassés']],
  body: rows,
  theme: 'grid',
- headStyles: { fillColor: [30, 27, 75], textColor: 255, fontSize: 8, halign: 'center' },
- bodyStyles: { fontSize: 8 },
+ headStyles: { fillColor: [30, 41, 59], textColor: 255, fontSize: 8.5, fontStyle: 'bold' },
+ styles: { fontSize: 8, cellPadding: 2.5, overflow: 'linebreak' },
  columnStyles: {
- 0: { cellWidth: 44, fontStyle: 'bold' },
- 1: { cellWidth: 16, halign: 'center' },
- 2: { cellWidth: 18, halign: 'center' },
- 3: { cellWidth: 12, halign: 'center', fontStyle: 'bold' },
- 4: { cellWidth: 14, halign: 'center' },
- 5: { cellWidth: 14, halign: 'center' },
- 6: { cellWidth: 16, halign: 'center' },
- 7: { cellWidth: 16, halign: 'center' },
- 8: { cellWidth: 14, halign: 'center' },
- 9: { cellWidth: 18, halign: 'center', fontStyle: 'bold' }
+ 0: { fontStyle: 'bold', cellWidth: 48 },
+ 1: { cellWidth: 18, halign: 'center' },
+ 2: { cellWidth: 16, halign: 'center' },
+ 3: { cellWidth: 15, halign: 'center' },
+ 4: { cellWidth: 18, halign: 'center', fontStyle: 'bold', textColor: [185, 28, 28] },
+ 5: { cellWidth: 16, halign: 'center' },
+ 6: { cellWidth: 18, halign: 'center' },
+ 7: { cellWidth: 15, halign: 'center' }
  },
  margin: { left: 14, right: 14 }
  });
+
+ const topChartStudents = cpeStudents.slice(0, 10);
+ if (topChartStudents.length > 0) {
+ const labels = topChartStudents.map(s => `${s.nom} ${(s.prenom || '')[0] || ''}.`);
+ const data = topChartStudents.map(s => countUnjustifiedAbsences(s));
+ const chartImg = await generateChartImage(labels, data, "Absences Injustifiées (Top Élèves Alerte CPE)");
+
+ const finalY = doc.lastAutoTable.finalY + 8;
+ if (finalY + 65 > 200) doc.addPage();
+ const yPos = finalY + 65 > 200 ? 15 : finalY;
+ doc.addImage(chartImg, 'PNG', 14, yPos, 140, 65);
  }
 
- if (exportType === 'details' || exportType === 'both') {
- let startY = (exportType === 'both') ? doc.lastAutoTable.finalY + 12 : 30;
- if (startY > 250) {
- doc.addPage();
- startY = 20;
- }
-
- const allEvents = [];
- sorted.forEach(s => {
- (s.events || []).forEach(ev => {
- allEvents.push({ student: s, event: ev });
- });
- });
-
- allEvents.sort((a,b) => {
- const dA = extractDateFromText(a.event.motif) || a.event.date;
- const dB = extractDateFromText(b.event.motif) || b.event.date;
- return new Date(dB) - new Date(dA);
- });
-
- if (allEvents.length === 0) {
- doc.setFont('Helvetica', 'italic');
- doc.setFontSize(10);
- doc.text("Aucun événement Vie Scolaire enregistré pour cette sélection.", 14, startY);
- } else {
- const detailRows = allEvents.map(item => {
- const { student: s, event: ev } = item;
- const dStr = extractDateFromText(ev.motif) || ev.date;
- const parsed = new Date(dStr);
- const fDate = !isNaN(parsed.getTime()) ? parsed.toLocaleString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }) : (ev.date || '--');
- 
- let typeTxt = ev.type ? ev.type.toUpperCase() : '--';
- if (ev.type === 'emploi_bloque') typeTxt = 'EDT BLOQUÉ';
- if (ev.type === 'exclusion') typeTxt = 'EXCLUSION';
- if (ev.type === 'abs_injustifiee') typeTxt = 'ABS. INJUST.';
-
- return [
- `${s.nom.toUpperCase()} ${s.prenom} (${s.classe})`,
- fDate,
- typeTxt,
- ev.motif || '-'
- ];
- });
-
- doc.autoTable({
- startY: startY,
- head: [['Élève (Classe)', 'Date & Heure', 'Type', 'Motif / Détail']],
- body: detailRows,
- theme: 'striped',
- headStyles: { fillColor: [79, 70, 229], textColor: 255, fontSize: 8.5 },
- bodyStyles: { fontSize: 8 },
- columnStyles: {
- 0: { cellWidth: 46, fontStyle: 'bold' },
- 1: { cellWidth: 32 },
- 2: { cellWidth: 28 },
- 3: { cellWidth: 'auto' }
- },
- margin: { left: 14, right: 14 }
- });
- }
- }
-
- const fileSlug = selectedClass === 'ALL' ? 'Toutes_Classes' : selectedClass.replace(/\s+/g, '_');
- doc.save(`Bilan_VieScolaire_${fileSlug}_${new Date().toISOString().slice(0,10)}.pdf`);
- closeModal('exportClassModal');
+ doc.save(`Alerte_CPE_${new Date().toISOString().slice(0, 10)}.pdf`);
  }
 
  function exportStudentPDF() {
@@ -4602,120 +4500,217 @@
 
  const { jsPDF } = window.jspdf;
  const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+ const dateStr = new Date().toLocaleDateString('fr-FR');
+
+ doc.setFillColor(30, 27, 75);
+ doc.rect(0, 0, 210, 26, 'F');
+ doc.setTextColor(255, 255, 255);
+ doc.setFont('Helvetica', 'bold');
+ doc.setFontSize(14);
+ doc.text(`FICHE INDIVIDUELLE VIE SCOLAIRE`, 14, 12);
+ doc.setFontSize(9);
+ doc.setFont('Helvetica', 'normal');
+ doc.text(`Éditée le ${dateStr} | VieScolaire Pro`, 14, 19);
+
+ doc.setFillColor(248, 250, 252);
+ doc.setDrawColor(203, 213, 225);
+ doc.roundedRect(14, 32, 182, 28, 2, 2, 'FD');
+
+ doc.setTextColor(15, 23, 42);
+ doc.setFont('Helvetica', 'bold');
+ doc.setFontSize(13);
+ doc.text(`${(s.nom || '').toUpperCase()} ${s.prenom || ''}`, 18, 40);
+
+ doc.setFont('Helvetica', 'normal');
+ doc.setFontSize(9);
+ doc.setTextColor(71, 85, 105);
+ doc.text(`Classe : ${s.classe || '--'}   |   Régime : ${s.regime || '--'}   |   Sortie : ${s.autorisationSortie || '--'}`, 18, 47);
+ doc.text(`Professeur Principal : ${s.profPrincipal || 'Non renseigné'}   |   Alerte CPE : ${s.alerteCPE ? 'OUI' : 'Non'}`, 18, 54);
 
  const events = s.events || [];
  const retards = events.filter(e => e.type === 'retard').length;
  const absences = events.filter(e => e.type === 'absence').length;
  const retenues = events.filter(e => e.type === 'retenue' || getStatutDetailFromMotif(e.motif) === 'Retenue').reduce((sum, e) => sum + getRetenueHours(e), 0);
- const formattedRetenues = Number.isInteger(retenues) ? retenues : retenues.toFixed(1);
- const emploiBloque = events.filter(e => e.type === 'emploi_bloque' || getStatutDetailFromMotif(e.motif) === 'emploi du temps bloqué').length;
+ const edtBloque = events.filter(e => e.type === 'emploi_bloque' || getStatutDetailFromMotif(e.motif) === 'emploi du temps bloqué').length;
  const exclusions = events.filter(e => e.type === 'exclusion' || getStatutDetailFromMotif(e.motif) === 'Exclusion de cours').length;
- const absInjustifiees = countUnjustifiedAbsences(s);
-
- doc.setFont('Helvetica', 'bold');
- doc.setFontSize(20);
- doc.setTextColor(30, 27, 75);
- doc.text(`${s.nom.toUpperCase()} ${s.prenom}`, 14, 20);
-
- doc.setFontSize(13);
- doc.setTextColor(71, 85, 105);
- doc.text(`Classe : ${s.classe || '--'}  •  Régime : ${s.regime || '--'}`, 14, 28);
-
- doc.setFontSize(9.5);
- doc.setFont('Helvetica', 'normal');
- doc.text(`Professeur Principal : ${s.profPrincipal || 'Non renseigné'}  |  Sortie : ${s.autorisationSortie || '--'}`, 14, 34);
- doc.text(`Fiche générée le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'})}`, 14, 39);
-
- doc.setLineWidth(0.4);
- doc.setDrawColor(203, 213, 225);
- doc.line(14, 43, 196, 43);
-
- doc.setFont('Helvetica', 'bold');
- doc.setFontSize(11);
- doc.setTextColor(30, 41, 59);
- doc.text("Synthèse des Compteurs", 14, 51);
+ const absInjust = countUnjustifiedAbsences(s);
 
  doc.autoTable({
- startY: 55,
- head: [['Retards', 'Absences', 'Heures Retenue', 'EDT Bloqué', 'Exclusions', 'Abs. Injustifiées']],
+ startY: 65,
+ head: [['Retards', 'Absences Tot.', 'Abs. Injustifiées', 'Heures Retenue', 'EDT Bloqué', 'Exclusions']],
  body: [[
- `${retards}`,
- `${absences}`,
- `${formattedRetenues} h`,
- `${emploiBloque}`,
- `${exclusions}`,
- `${absInjustifiees}`
+ retards,
+ absences,
+ absInjust,
+ `${Number.isInteger(retenues) ? retenues : retenues.toFixed(1)} h`,
+ edtBloque,
+ exclusions
  ]],
  theme: 'grid',
- headStyles: { fillColor: [30, 27, 75], textColor: 255, halign: 'center', fontSize: 9 },
- bodyStyles: { halign: 'center', fontStyle: 'bold', fontSize: 11 },
+ headStyles: { fillColor: [79, 70, 229], textColor: 255, fontSize: 8.5, halign: 'center' },
+ styles: { fontSize: 10, fontStyle: 'bold', halign: 'center', cellPadding: 3 },
  margin: { left: 14, right: 14 }
  });
 
- const nextY = doc.lastAutoTable.finalY + 10;
- doc.setFont('Helvetica', 'bold');
- doc.setFontSize(11);
- doc.text("Historique Vie Scolaire & PRONOTE", 14, nextY);
-
- const sortedEvents = events.slice().sort((a,b) => {
- const dA = extractDateFromText(a.motif) || a.date;
- const dB = extractDateFromText(b.motif) || b.date;
- return new Date(dB) - new Date(dA);
- });
-
- if (sortedEvents.length === 0) {
- doc.setFont('Helvetica', 'italic');
- doc.setFontSize(10);
- doc.setTextColor(100, 116, 139);
- doc.text("Aucun événement enregistré.", 14, nextY + 8);
- } else {
- const tableRows = sortedEvents.map(ev => {
+ const sortedEvents = events.slice().sort((a, b) => new Date(extractDateFromText(b.motif) || b.date) - new Date(extractDateFromText(a.motif) || a.date));
+ const eventRows = sortedEvents.map(ev => {
  const dStr = extractDateFromText(ev.motif) || ev.date;
- const parsed = new Date(dStr);
- const fDate = !isNaN(parsed.getTime()) ? parsed.toLocaleString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }) : (ev.date || '--');
- 
- let typeTxt = ev.type ? ev.type.toUpperCase() : '--';
- if (ev.type === 'emploi_bloque') typeTxt = 'EDT BLOQUÉ';
- if (ev.type === 'exclusion') typeTxt = 'EXCLUSION COURS';
- if (ev.type === 'abs_injustifiee') typeTxt = 'ABS. INJUSTIFIÉE';
-
- let statutTxt = '--';
- const motifStatut = getStatutDetailFromMotif(ev.motif);
+ const d = new Date(dStr);
+ const fmtDate = !isNaN(d.getTime()) ? d.toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : (ev.date || '--');
  const isJust = ev.justified === 'Oui' || /\boui\b/i.test(ev.motif || '');
- if (ev.type === 'retenue' || motifStatut === 'Retenue') {
- const h = getRetenueHours(ev);
- statutTxt = `${Number.isInteger(h) ? h : h.toFixed(1)}h`;
- } else if (motifStatut) {
- statutTxt = motifStatut;
- } else if (ev.type === 'absence' || ev.type === 'retard') {
- statutTxt = isJust ? 'Justifié' : 'Non justifié';
- }
+ let statut = '--';
+ if (ev.type === 'absence' || ev.type === 'retard') statut = isJust ? 'Justifié' : 'Non justifié';
+ else if (ev.type === 'retenue') statut = `${getRetenueHours(ev)}h`;
+ else if (ev.pronoteType) statut = ev.pronoteType;
 
- return [fDate, typeTxt, statutTxt, ev.motif || '-'];
+ return [fmtDate, (ev.type || '').toUpperCase(), statut, ev.motif || '-'];
  });
 
  doc.autoTable({
- startY: nextY + 4,
- head: [['Date & Heure', 'Événement', 'Statut / Détail', 'Motif / Commentaire']],
- body: tableRows,
+ startY: doc.lastAutoTable.finalY + 8,
+ head: [['Date & Heure', 'Type', 'Statut / Détail', 'Motif / Commentaire']],
+ body: eventRows.length > 0 ? eventRows : [['--', 'Aucun événement enregistré', '--', '--']],
  theme: 'striped',
- headStyles: { fillColor: [79, 70, 229], textColor: 255, fontSize: 9 },
- bodyStyles: { fontSize: 8.5 },
+ headStyles: { fillColor: [30, 41, 59], textColor: 255, fontSize: 8.5 },
+ styles: { fontSize: 8, cellPadding: 2.5, overflow: 'linebreak' },
+ columnStyles: { 0: { cellWidth: 34 }, 1: { cellWidth: 28, fontStyle: 'bold' }, 2: { cellWidth: 26 } },
+ margin: { left: 14, right: 14 }
+ });
+
+ doc.save(`Fiche_${s.nom}_${s.prenom}_${new Date().toISOString().slice(0, 10)}.pdf`);
+ }
+
+ function handleExportClassPDF(e) {
+ e.preventDefault();
+ const selectedClass = document.getElementById('exportClassSelect').value;
+ const exportType = document.getElementById('exportTypeSelect').value;
+
+ if (exportType === 'unjustified') {
+ closeModal('exportClassModal');
+ const mainFilter = document.getElementById('classFilter');
+ const prevVal = mainFilter.value;
+ mainFilter.value = selectedClass === 'ALL' ? '' : selectedClass;
+ exportUnjustifiedAbsencesPDF().finally(() => {
+ mainFilter.value = prevVal;
+ });
+ return;
+ }
+
+ const targetStudents = students.filter(s => selectedClass === 'ALL' || s.classe === selectedClass)
+ .sort((a, b) => (a.classe || '').localeCompare(b.classe || '') || (a.nom || '').localeCompare(b.nom || ''));
+
+ if (targetStudents.length === 0) {
+ alert("Aucun élève trouvé pour cette classe.");
+ return;
+ }
+
+ const { jsPDF } = window.jspdf;
+ const doc = new jsPDF({ orientation: 'l', unit: 'mm', format: 'a4' });
+ const dateStr = new Date().toLocaleDateString('fr-FR');
+ const titleLabel = selectedClass === 'ALL' ? 'TOUTES LES CLASSES' : `CLASSE ${selectedClass.toUpperCase()}`;
+
+ doc.setFillColor(30, 27, 75);
+ doc.rect(0, 0, 297, 22, 'F');
+ doc.setTextColor(255, 255, 255);
+ doc.setFont('Helvetica', 'bold');
+ doc.setFontSize(14);
+ doc.text(`BILAN VIE SCOLAIRE — ${titleLabel} (${targetStudents.length} élèves)`, 14, 11);
+ doc.setFontSize(8.5);
+ doc.setFont('Helvetica', 'normal');
+ doc.text(`Édité le ${dateStr} | VieScolaire Pro`, 14, 17);
+
+ let currentY = 28;
+
+ if (exportType === 'summary' || exportType === 'both') {
+ const summaryRows = targetStudents.map(s => {
+ const events = s.events || [];
+ const retards = events.filter(e => e.type === 'retard').length;
+ const absences = events.filter(e => e.type === 'absence').length;
+ const absInjust = countUnjustifiedAbsences(s);
+ const retenues = events.filter(e => e.type === 'retenue' || getStatutDetailFromMotif(e.motif) === 'Retenue').reduce((sum, e) => sum + getRetenueHours(e), 0);
+ const edtBloque = events.filter(e => e.type === 'emploi_bloque' || getStatutDetailFromMotif(e.motif) === 'emploi du temps bloqué').length;
+ const exclusions = events.filter(e => e.type === 'exclusion' || getStatutDetailFromMotif(e.motif) === 'Exclusion de cours').length;
+
+ return [
+ `${(s.nom || '').toUpperCase()} ${s.prenom || ''}`,
+ s.classe || '--',
+ s.regime === 'Demi-pensionnaire' ? 'DP' : (s.regime || '--'),
+ s.autorisationSortie || '--',
+ s.alerteCPE ? 'OUI' : 'Non',
+ retards,
+ absences,
+ absInjust,
+ `${Number.isInteger(retenues) ? retenues : retenues.toFixed(1)}h`,
+ edtBloque,
+ exclusions
+ ];
+ });
+
+ doc.autoTable({
+ startY: currentY,
+ head: [['Élève', 'Classe', 'Régime', 'Sortie', 'CPE', 'Retards', 'Abs.', 'Abs. Inj.', 'Colles', 'EDT Blq.', 'Excl.']],
+ body: summaryRows,
+ theme: 'grid',
+ headStyles: { fillColor: [79, 70, 229], textColor: 255, fontSize: 8, fontStyle: 'bold' },
+ styles: { fontSize: 8, cellPadding: 2 },
  columnStyles: {
- 0: { cellWidth: 34 },
- 1: { cellWidth: 34, fontStyle: 'bold' },
- 2: { cellWidth: 30 },
- 3: { cellWidth: 'auto' }
+ 0: { fontStyle: 'bold', cellWidth: 55 },
+ 1: { halign: 'center', cellWidth: 18 },
+ 2: { halign: 'center', cellWidth: 22 },
+ 3: { halign: 'center', cellWidth: 16 },
+ 4: { halign: 'center', cellWidth: 16 },
+ 5: { halign: 'center', cellWidth: 18 },
+ 6: { halign: 'center', cellWidth: 16 },
+ 7: { halign: 'center', cellWidth: 18, fontStyle: 'bold' },
+ 8: { halign: 'center', cellWidth: 18 },
+ 9: { halign: 'center', cellWidth: 18 },
+ 10: { halign: 'center', cellWidth: 16 }
  },
  margin: { left: 14, right: 14 }
  });
+
+ currentY = doc.lastAutoTable.finalY + 10;
  }
 
- doc.save(`Fiche_VieScolaire_${s.nom}_${s.prenom}.pdf`);
+ if (exportType === 'details' || exportType === 'both') {
+ if (exportType === 'both') {
+ doc.addPage();
+ currentY = 15;
+ }
+ const detailRows = [];
+ targetStudents.forEach(s => {
+ (s.events || []).forEach(ev => {
+ const dStr = extractDateFromText(ev.motif) || ev.date;
+ const d = new Date(dStr);
+ const fmtDate = !isNaN(d.getTime()) ? d.toLocaleDateString('fr-FR') : (ev.date || '--');
+ detailRows.push([
+ `${(s.nom || '').toUpperCase()} ${s.prenom || ''}`,
+ s.classe || '--',
+ fmtDate,
+ (ev.type || '').toUpperCase(),
+ ev.motif || '-'
+ ]);
+ });
+ });
+
+ doc.autoTable({
+ startY: currentY,
+ head: [['Élève', 'Classe', 'Date', 'Type', 'Détail / Motif']],
+ body: detailRows.length > 0 ? detailRows : [['--', '--', '--', '--', 'Aucun événement enregistré']],
+ theme: 'striped',
+ headStyles: { fillColor: [30, 41, 59], textColor: 255, fontSize: 8 },
+ styles: { fontSize: 7.5, cellPadding: 2, overflow: 'linebreak' },
+ columnStyles: { 0: { cellWidth: 48, fontStyle: 'bold' }, 1: { cellWidth: 18 }, 2: { cellWidth: 24 }, 3: { cellWidth: 28 } },
+ margin: { left: 14, right: 14 }
+ });
+ }
+
+ doc.save(`Bilan_${selectedClass === 'ALL' ? 'Toutes_Classes' : selectedClass}_${new Date().toISOString().slice(0, 10)}.pdf`);
+ closeModal('exportClassModal');
  }
 
  // =========================================================
- // 13. GESTION NOUVEL ÉLÈVE & SUPPRESSION ÉLÈVE
+ // 13. AJOUT / SUPPRESSION ÉLÈVE
  // =========================================================
  function openAddStudentModal() {
  document.getElementById('addStudentForm').reset();
@@ -4728,30 +4723,49 @@
  const prenom = document.getElementById('newPrenom').value.trim();
  const classe = document.getElementById('newClasse').value.trim();
  const regime = document.getElementById('newRegime').value;
- const autorisation = document.getElementById('newAutorisation').value;
- const prof = document.getElementById('newProf').value.trim();
+ const autorisationSortie = document.getElementById('newAutorisation').value;
+ const profPrincipal = document.getElementById('newProf').value.trim();
  const alerteCPE = document.getElementById('newAlerteCpe').value === 'Oui';
  const docNonRendu = document.getElementById('newDocNonRendu').value === 'Oui';
 
  if (!nom || !prenom || !classe) return;
 
- const newStudent = {
+ const normNom = normalizeNameForMatch(nom);
+ const normPrenom = normalizeNameForMatch(prenom);
+ const existing = students.find(s => {
+ const sNom = normalizeNameForMatch(s.nom);
+ const sPrenom = normalizeNameForMatch(s.prenom);
+ return (sNom === normNom && sPrenom === normPrenom) || (sNom === normPrenom && sPrenom === normNom);
+ });
+
+ if (existing) {
+ existing.classe = classe;
+ existing.regime = regime;
+ existing.autorisationSortie = autorisationSortie;
+ if (profPrincipal) existing.profPrincipal = profPrincipal;
+ if (alerteCPE) {
+ existing.alerteCPE = true;
+ existing.manualAlerteCPE = true;
+ }
+ if (docNonRendu) existing.docNonRendu = true;
+ } else {
+ students.push({
  id: generateUUID(),
  nom,
  prenom,
  classe,
  regime,
- autorisationSortie: autorisation,
+ autorisationSortie,
+ profPrincipal,
  alerteCPE,
  manualAlerteCPE: alerteCPE,
  docNonRendu,
- profPrincipal: prof,
  badgeRepere: '',
  badgeCantine: '',
  events: []
- };
+ });
+ }
 
- students.push(newStudent);
  saveStorage();
  populateClassFilter();
  filterStudents();
@@ -4771,6 +4785,9 @@
  closeModal('deleteModal');
  showListPage();
  }
+
+ // INITIALISATION DES ICÔNES LUCIDE
+ if (window.lucide) lucide.createIcons();
  </script>
 </body>
 </html>
